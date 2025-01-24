@@ -1,7 +1,7 @@
 import React from "react";
-import Login from "./components/Login";
-import SignUp from "./components/SignUp";
-import ForgotPassword from "./components/ForgotPassword";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
