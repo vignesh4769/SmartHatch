@@ -1,7 +1,7 @@
+// components/EmployeeAttendanceTable.jsx
 import React, { useState } from "react";
 
 const EmployeeAttendanceTable = () => {
-  // Dummy Employee List (Replace with backend data)
   const employees = [
     { id: 1, name: "John Doe", country: "USA", role: "Technician", avatar: "https://img.daisyui.com/images/profile/demo/2@94.webp" },
     { id: 2, name: "Alice Smith", country: "China", role: "Supervisor", avatar: "https://img.daisyui.com/images/profile/demo/3@94.webp" },
@@ -9,12 +9,10 @@ const EmployeeAttendanceTable = () => {
     { id: 4, name: "Emily Davis", country: "Brazil", role: "Manager", avatar: "https://img.daisyui.com/images/profile/demo/5@94.webp" },
   ];
 
-  // State to track attendance and timestamp
   const [attendance, setAttendance] = useState({});
 
-  // Function to mark attendance
   const markAttendance = (employeeId, status) => {
-    const timestamp = new Date().toLocaleString(); // Capture current time
+    const timestamp = new Date().toLocaleString();
     setAttendance({
       ...attendance,
       [employeeId]: { status, timestamp },
@@ -24,18 +22,15 @@ const EmployeeAttendanceTable = () => {
   return (
     <div className="overflow-x-auto">
       <table className="table w-full">
-        {/* Table Header */}
         <thead>
           <tr>
             <th>Name</th>
             <th>Role</th>
             <th>Attendance</th>
             <th>Timestamp</th>
-            <th>Actions</th>
+            
           </tr>
         </thead>
-        
-        {/* Table Body */}
         <tbody>
           {employees.map((emp) => (
             <tr key={emp.id}>
@@ -58,7 +53,6 @@ const EmployeeAttendanceTable = () => {
                 <span className="badge badge-ghost badge-sm">{emp.role}</span>
               </td>
               <td>
-                {/* Attendance Buttons */}
                 <button
                   className={`btn btn-sm ${attendance[emp.id]?.status === "Present" ? "btn-success" : "btn-outline"}`}
                   onClick={() => markAttendance(emp.id, "Present")}
@@ -80,20 +74,18 @@ const EmployeeAttendanceTable = () => {
                 )}
               </td>
               <td>
-                <button className="btn btn-ghost btn-xs">Details</button>
+               
               </td>
             </tr>
           ))}
         </tbody>
-
-        {/* Table Footer */}
         <tfoot>
           <tr>
             <th>Name</th>
             <th>Role</th>
             <th>Attendance</th>
             <th>Timestamp</th>
-            <th>Actions</th>
+            
           </tr>
         </tfoot>
       </table>

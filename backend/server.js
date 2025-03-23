@@ -4,7 +4,7 @@ const uri = require("./atlas_uri");
 // console.log(uri)
 
 const client =new MongoClient(uri);
-const dbname= "users";
+const dbname= "Employee";
 const connectToDatabase = async () => {
     try{
         await client.connect();

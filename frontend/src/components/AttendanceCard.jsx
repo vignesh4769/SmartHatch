@@ -7,6 +7,6 @@ const AttendanceCard = () => {
       <p className="text-2xl font-bold text-green-500">95% Present</p>
     </div>
   );
-};
+}
 
 export default AttendanceCard;
