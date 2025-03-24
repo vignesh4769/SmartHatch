@@ -1,10 +1,11 @@
 import React from "react";
 
-function Button({ text, onClick, className = "btn btn-primary" }) {
+function Button({ text, onClick, className = "" }) {
   return (
-    <button onClick={onClick} className={`px-4 py-2 rounded-lg ${className}`}>
+    <button onClick={onClick} className={className}>
       {text}
     </button>
+    
   );
 }
 
