@@ -10,7 +10,7 @@ import EmployeeManagement from "../pages/EmployeeManagement";
 import Layout from "../components/Layout";
 import VisitorLog from "../pages/VisitorLog";
 import RunManagement from "../pages/RunManagement"; 
-
+import InventoryManagement from "../pages/InventoryManagement";
 const AppRoutes = ({ userRole, setUserRole, handleLogout }) => {
   return (
     <Routes>
@@ -30,6 +30,7 @@ const AppRoutes = ({ userRole, setUserRole, handleLogout }) => {
               <Route path="/employees" element={<EmployeeManagement />} />
               <Route path="/run-management" element={<RunManagement />} /> 
               <Route path="/visitor-log" element={<VisitorLog />} /> 
+              <Route path="/inventory" element={<InventoryManagement />} />
               <Route path="*" element={<Navigate to="/admin-dashboard" replace />} />
             </>
           ) : userRole === "employee" ? (

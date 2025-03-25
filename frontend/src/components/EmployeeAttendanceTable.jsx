@@ -1,4 +1,3 @@
-// components/EmployeeAttendanceTable.jsx
 import React, { useState } from "react";
 
 const EmployeeAttendanceTable = () => {
