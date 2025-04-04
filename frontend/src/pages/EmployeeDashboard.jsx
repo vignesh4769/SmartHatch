@@ -1,10 +1,23 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import SidebarEmployee from "../components/SidebarEmployee";
 import AttendanceCard from "../components/AttendanceCard";
 import LeaveRequestForm from "../components/LeaveRequestForm";
 import MessSchedule from "../components/MessSchedule";
+import { useAuth } from "../context/authContext";
 
 const EmployeeDashboard = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth(); // Get user from auth context
+
+  useEffect(() => {
+    // Check if user is authenticated and an employee
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser || storedUser.role !== "employee") {
+      navigate("/login"); // Redirect unauthorized users
+    }
+  }, [navigate]);
+
   return (
     <div className="flex min-h-screen">
       <SidebarEmployee />
@@ -18,7 +31,7 @@ const EmployeeDashboard = () => {
             </button>
             <div className="avatar">
               <div className="w-10 rounded-full">
-                <img src="/src/assets/images/employee-avatar.jpg" alt="Employee" />
+                <img src="/assets/images/employee-avatar.jpg" alt="Employee" />
               </div>
             </div>
           </div>

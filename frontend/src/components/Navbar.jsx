@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-function Navbar({ userRole, handleLogout, toggleSidebar }) {
+function Navbar({ userRole, handleLogout }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
@@ -9,7 +9,6 @@ function Navbar({ userRole, handleLogout, toggleSidebar }) {
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
@@ -25,35 +24,31 @@ function Navbar({ userRole, handleLogout, toggleSidebar }) {
 
   return (
     <div className="bg-gray-800 text-white shadow-sm h-16 z-50 flex items-center justify-between px-6 fixed top-0 left-0 w-full shadow-md p-4">
-      {/* Logo & Sidebar Toggle */}
+      {/* Logo */}
       <div className="flex items-center">
-        <button onClick={toggleSidebar} className="text-xl font-bold flex items-center focus:outline-none">
-          <img src="/images/logo.jpg" className="w-10 h-10 rounded-full mr-3" alt="SmartHatch Logo" />
-          SmartHatch
-        </button>
+        <img src="/images/logo.jpg" className="w-10 h-10 rounded-full mr-3" alt="SmartHatch Logo" />
+        <span className="text-xl font-bold">SmartHatch</span>
       </div>
 
       {/* Navigation Links */}
       <div className="hidden lg:flex">
         <ul className="menu menu-horizontal space-x-4">
-          {userRole === "admin" ? (
+          {/* Links for all roles */}
+          <li><Link to="/dashboard">📊 Dashboard</Link></li>
+          
+          {/* Admin specific links */}
+          {userRole === "admin" && (
             <>
-              <li><Link to="/admin-dashboard">📊 Dashboard</Link></li>
               <li><Link to="/employees">👷 Employees</Link></li>
-              <li><Link to="/visitor-log">🚶 Visitors</Link></li>
-              <li><Link to="/mess">🍽️ Mess</Link></li>
-              <li><Link to="/inventory">📦 Inventory</Link></li>
+              <li><Link to="/visitor">🚶 Visitors</Link></li>
+              <li><Link to="/inventory-management">📦 Inventory</Link></li>
               <li><Link to="/financial">💰 Financial</Link></li>
             </>
-          ) : userRole === "employee" ? (
-            <>
-              <li><Link to="/employee-dashboard">📊 Dashboard</Link></li>
-              <li><Link to="/attendance">🗓️ Attendance</Link></li>
-              <li><Link to="/leave-request">📪 Leave</Link></li>
-              <li><Link to="/mess">🍽️ Mess</Link></li>
-            </>
-          ) : (
-            <li className="text-gray-500">Invalid Role</li>
+          )}
+
+          {/* Employee specific links */}
+          {userRole === "employee" && (
+            <li><Link to="/leave-request">📪 Leave</Link></li>
           )}
         </ul>
       </div>
@@ -78,15 +73,15 @@ function Navbar({ userRole, handleLogout, toggleSidebar }) {
 
         {/* Profile */}
         <div className="relative" ref={profileRef}>
-        <button className="avatar" onClick={() => setIsProfileOpen(!isProfileOpen)}>
-  <div className="w-8 h-8">
-    <img
-      src={userRole === "admin" ? "/images/admin.jpg" : "/images/employee.jpg"}
-      alt="Profile"
-      className="w-full h-full rounded-full object-cover" // Ensure the image is circular and covers the area
-    />
-  </div>
-</button>
+          <button className="avatar" onClick={() => setIsProfileOpen(!isProfileOpen)}>
+            <div className="w-8 h-8">
+              <img
+                src={userRole === "admin" ? "/images/admin.jpg" : "/images/employee.jpg"}
+                alt="Profile"
+                className="w-full h-full rounded-full object-cover" // Ensure the image is circular and covers the area
+              />
+            </div>
+          </button>
 
           {isProfileOpen && (
             <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg p-3 z-10 text-gray-800">
