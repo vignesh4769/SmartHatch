@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/auth.css";
-import Button from "../../components/Button";
+import Button from "../../components/common/Button";
 import axios from "axios";
 
 function ForgotPassword({ onBack }) {
@@ -18,7 +18,10 @@ function ForgotPassword({ onBack }) {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/forgot-password", { email });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/forgot-password",
+        { email }
+      );
       if (response.data.success) {
         setSuccess("OTP sent to your email");
         setError("");
@@ -36,11 +39,14 @@ function ForgotPassword({ onBack }) {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/verify-otp", { 
-        email, 
-        otp 
-      });
-      
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/verify-otp",
+        {
+          email,
+          otp,
+        }
+      );
+
       if (response.data.success) {
         setSuccess("OTP verified");
         setError("");
@@ -62,11 +68,14 @@ function ForgotPassword({ onBack }) {
     }
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/reset-password", {
-        email,
-        otp,
-        newPassword
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/reset-password",
+        {
+          email,
+          otp,
+          newPassword,
+        }
+      );
       if (response.data.success) {
         setSuccess("Password reset successfully");
         setError("");
@@ -83,18 +92,27 @@ function ForgotPassword({ onBack }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cover bg-center px-4"
-      style={{ backgroundImage: "url('/images/background.jpg')" }}>
+    <div
+      className="flex min-h-screen items-center justify-center bg-cover bg-center px-4"
+      style={{ backgroundImage: "url('/images/background.jpg')" }}
+    >
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-center text-2xl font-bold text-gray-700">Forgot Password</h2>
-        
+        <h2 className="mb-4 text-center text-2xl font-bold text-gray-700">
+          Forgot Password
+        </h2>
+
         {error && <div className="mb-4 text-red-500 text-center">{error}</div>}
-        {success && <div className="mb-4 text-green-500 text-center">{success}</div>}
+        {success && (
+          <div className="mb-4 text-green-500 text-center">{success}</div>
+        )}
 
         {step === 1 && (
           <form onSubmit={handleEmailSubmit} className="space-y-4">
             <div className="form-group">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Enter Your Email
               </label>
               <input
@@ -106,9 +124,9 @@ function ForgotPassword({ onBack }) {
                 required
               />
             </div>
-            <Button 
-              text={isLoading ? "Sending..." : "Send OTP"} 
-              className="w-full btn btn-info rounded-md" 
+            <Button
+              text={isLoading ? "Sending..." : "Send OTP"}
+              className="w-full btn btn-info rounded-md"
               disabled={isLoading}
             />
           </form>
@@ -117,7 +135,10 @@ function ForgotPassword({ onBack }) {
         {step === 2 && (
           <form onSubmit={handleOtpSubmit} className="space-y-4">
             <div className="form-group">
-              <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="otp"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Enter 4-digit OTP
               </label>
               <input
@@ -131,9 +152,9 @@ function ForgotPassword({ onBack }) {
                 required
               />
             </div>
-            <Button 
-              text={isLoading ? "Verifying..." : "Verify OTP"} 
-              className="w-full btn btn-success rounded-md" 
+            <Button
+              text={isLoading ? "Verifying..." : "Verify OTP"}
+              className="w-full btn btn-success rounded-md"
               disabled={isLoading}
             />
           </form>
@@ -142,7 +163,10 @@ function ForgotPassword({ onBack }) {
         {step === 3 && (
           <form onSubmit={handlePasswordReset} className="space-y-4">
             <div className="form-group">
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="newPassword"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 New Password
               </label>
               <input
@@ -155,7 +179,10 @@ function ForgotPassword({ onBack }) {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Confirm Password
               </label>
               <input
@@ -167,17 +194,17 @@ function ForgotPassword({ onBack }) {
                 required
               />
             </div>
-            <Button 
-              text={isLoading ? "Resetting..." : "Reset Password"} 
-              className="w-full btn btn-primary rounded-md" 
+            <Button
+              text={isLoading ? "Resetting..." : "Reset Password"}
+              className="w-full btn btn-primary rounded-md"
               disabled={isLoading}
             />
           </form>
         )}
 
         <div className="mt-4 text-center">
-          <button 
-            onClick={onBack} 
+          <button
+            onClick={onBack}
             className="text-blue-500 hover:underline hover:underline-offset-4 font-medium"
           >
             Back to Login

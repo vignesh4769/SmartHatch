@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from 'axios';
 
 const userContext = createContext();
 
-const authContext = ({ children }) => {
+const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     const token = localStorage.getItem("token");
@@ -12,37 +13,57 @@ const authContext = ({ children }) => {
   useEffect(() => {
     if (user) {
       localStorage.setItem("user", JSON.stringify(user));
-      // localStorage.setItem("role")
-    // localStorage.setItem("token", userData.token);
-      
     } else {
       localStorage.removeItem("user");
     }
   }, [user]);
 
-  const login = (userData) => {
-    setUser(userData);
+  const login = async (userData) => {
+    // Ensure role is always included in user data
+    const completeUserData = {
+      ...userData,
+      role: userData.role || 'employee' // Default to employee if role not provided
+    };
+    
+    setUser(completeUserData);
     localStorage.setItem("token", userData.token);
     localStorage.setItem("user", JSON.stringify({
-      _id: userData._id,
-      role: userData.role,
-      name: userData.name,
-      hatcheryName: userData.hatcheryName
+      _id: completeUserData._id,
+      role: completeUserData.role,
+      name: completeUserData.name,
+      hatcheryName: completeUserData.hatcheryName
     }));
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+  const logout = async () => {
+    try {
+      await axios.post("http://localhost:5000/api/auth/logout");
+      setUser(null);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return (
-    <userContext.Provider value={{ user, login, logout }}>
+    <userContext.Provider value={{ 
+      user, 
+      login, 
+      logout,
+      isAdmin: user?.role === 'admin' // Additional helper
+    }}>
       {children}
     </userContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(userContext);
-export default authContext;
+export const useAuth = () => {
+  const context = useContext(userContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export default AuthProvider;

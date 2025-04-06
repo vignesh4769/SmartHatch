@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 
+// Email transporter configuration
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -12,16 +13,43 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Generate 4-digit OTP
 const generateOTP = () => crypto.randomInt(1000, 9999).toString();
 
-// Existing login function
+// Token verification middleware (for logout)
+export const verifyToken = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.json({ valid: false });
+    }
+
+    jwt.verify(token, process.env.JWT_KEY);
+    res.json({ valid: true });
+  } catch (error) {
+    res.json({ valid: false });
+  }
+};
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Email and password are required" 
+      });
+    }
+
+    const user = await User.findOne({ email }).select('+password');
     
     if (!user) {
-      return res.status(400).json({ success: false, error: "User not found" });
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid credentials" // Generic message for security
+      });
     }
 
     if (!user.isVerified) {
@@ -33,35 +61,84 @@ export const login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ success: false, error: "Invalid credentials" });
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid credentials" 
+      });
     }
 
     const token = jwt.sign(
-      { _id: user._id, role: user.role },
+      { 
+        _id: user._id, 
+        role: user.role,
+        email: user.email
+      },
       process.env.JWT_KEY,
       { expiresIn: "10d" }
     );
 
+    // Omit sensitive data from response
+    const userResponse = {
+      _id: user._id,
+      role: user.role,
+      name: user.name,
+      hatcheryName: user.hatcheryName,
+      email: user.email
+    };
+
     res.status(200).json({
       success: true,
       token,
-      user: { 
-        _id: user._id, 
-        role: user.role, 
-        name: user.name,
-        hatcheryName: user.hatcheryName 
-      },
+      user: userResponse
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error("Login error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Server error during authentication" 
+    });
   }
 };
 
-// Updated signup with email verification
+export const logout = async (req, res) => {
+  try {
+    // In a production system, you might:
+    // 1. Add token to a blacklist
+    // 2. Track logout time in user record
+    res.status(200).json({ 
+      success: true, 
+      message: "Logged out successfully" 
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Server error during logout" 
+    });
+  }
+};
+
 export const signup = async (req, res) => {
   try {
     const { hatcheryName, caaNumber, name, phone, email, password } = req.body;
     
+    // Validate required fields
+    if (!hatcheryName || !caaNumber || !name || !phone || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "All fields are required"
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: "Please enter a valid email address"
+      });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ 
@@ -111,9 +188,10 @@ export const signup = async (req, res) => {
     });
 
   } catch (error) {
+    console.error("Signup error:", error);
     res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: "Server error during registration" 
     });
   }
 };
@@ -121,6 +199,14 @@ export const signup = async (req, res) => {
 export const verifyEmail = async (req, res) => {
   try {
     const { email, otp } = req.body;
+    
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        error: "Email and OTP are required"
+      });
+    }
+
     const user = await User.findOne({ 
       email,
       verificationOTP: otp,
@@ -145,22 +231,32 @@ export const verifyEmail = async (req, res) => {
     });
 
   } catch (error) {
+    console.error("Email verification error:", error);
     res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: "Server error during verification" 
     });
   }
 };
-// In forgotPassword function - Update the OTP generation and storage:
+
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required"
+      });
+    }
+
     const user = await User.findOne({ email, isVerified: true });
     
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        error: "No verified account found with this email" 
+      // Return generic message for security
+      return res.status(200).json({ 
+        success: true, 
+        message: "If this email exists, a reset link has been sent" 
       });
     }
 
@@ -174,8 +270,6 @@ export const forgotPassword = async (req, res) => {
     user.resetPasswordOTP = resetOTP;
     user.resetPasswordOTPExpires = Date.now() + 600000; // 10 minutes
     await user.save();
-
-    console.log(`Generated OTP for ${email}:`, resetOTP); // Debug log
 
     await transporter.sendMail({
       from: `SmartHatch <${process.env.EMAIL_USER}>`,
@@ -201,7 +295,7 @@ export const forgotPassword = async (req, res) => {
     console.error("Forgot password error:", error);
     res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: "Server error during password reset" 
     });
   }
 };
@@ -209,6 +303,14 @@ export const forgotPassword = async (req, res) => {
 export const verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
+    
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        error: "Email and OTP are required"
+      });
+    }
+
     const user = await User.findOne({ 
       email,
       resetPasswordOTP: otp,
@@ -222,30 +324,47 @@ export const verifyOTP = async (req, res) => {
       });
     }
     
+    const tempToken = jwt.sign(
+      { 
+        _id: user._id, 
+        resetAuth: true,
+        email: user.email
+      },
+      process.env.JWT_KEY,
+      { expiresIn: '15m' }
+    );
+
     res.status(200).json({ 
       success: true, 
       message: "OTP verified",
-      tempToken: jwt.sign(
-        { _id: user._id, resetAuth: true },
-        process.env.JWT_KEY,
-        { expiresIn: '15m' }
-      )
+      tempToken
     });
   } catch (error) {
-   
+    console.error("OTP verification error:", error);
     res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: "Server error during OTP verification" 
     });
   }
 };
 
-// In resetPassword function:
 export const resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
     
-    
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "All fields are required"
+      });
+    }
+
+    if (newPassword.length < 4) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must be at least 4 characters"
+      });
+    }
 
     const user = await User.findOne({ 
       email,
@@ -266,15 +385,15 @@ export const resetPassword = async (req, res) => {
     user.resetPasswordOTPExpires = undefined;
     await user.save();
 
-    
     res.status(200).json({ 
       success: true, 
       message: "Password reset successfully" 
     });
   } catch (error) {
+    console.error("Password reset error:", error);
     res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: "Server error during password reset" 
     });
   }
 };

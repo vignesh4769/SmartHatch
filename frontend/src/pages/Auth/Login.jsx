@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/auth.css";
-import Button from "../../components/Button";
+import Button from "../../components/common/Button";
 import ForgotPassword from "./ForgotPassword";
 import axios from "axios";
 import { useAuth } from "../../context/authContext";
@@ -18,19 +18,22 @@ function Login({ setUserRole }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
-        email,
-        password,
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        {
+          email,
+          password,
+        }
+      );
 
       if (response.data.success) {
         login(response.data.user);
         localStorage.setItem("token", response.data.token);
 
         if (response.data.user.role === "admin") {
-          navigate("/admin-dashboard");
+          navigate("/admin/dashboard");
         } else {
-          navigate("/employee-dashboard");
+          navigate("/employee/dashboard");
         }
       }
     } catch (error) {
@@ -40,7 +43,7 @@ function Login({ setUserRole }) {
         setError("An error occurred at the server side");
       }
     }
-  }; 
+  };
 
   if (showForgotPassword) {
     return <ForgotPassword onBack={() => setShowForgotPassword(false)} />;
@@ -52,7 +55,9 @@ function Login({ setUserRole }) {
       style={{ backgroundImage: "url('/images/background.jpg')" }}
     >
       <div className="w-full max-w-sm rounded-lg bg-white p-4 shadow-lg">
-        <h2 className="text-3xl text-grey font-bold text-center font-sans">SmartHatch</h2>
+        <h2 className="text-3xl text-grey font-bold text-center font-sans">
+          SmartHatch
+        </h2>
 
         <div className="text-center">
           <img
@@ -66,7 +71,10 @@ function Login({ setUserRole }) {
 
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="form-group">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
               Email
             </label>
             <input
@@ -78,9 +86,12 @@ function Login({ setUserRole }) {
               required
             />
           </div>
-          
+
           <div className="form-group">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+            >
               Password
             </label>
             <input
@@ -112,15 +123,15 @@ function Login({ setUserRole }) {
         <div className="mt-2 text-center">
           <p className="text-sm text-gray-600">
             Don't have an account?{" "}
-            <button 
-              onClick={() => navigate("/signup")} 
+            <button
+              onClick={() => navigate("/signup")}
               className="text-blue-500 hover:underline"
             >
               Sign up here
             </button>
           </p>
         </div>
-        
+
         <div className="mt-3 text-center">
           <Button
             text="Forgot Password?"

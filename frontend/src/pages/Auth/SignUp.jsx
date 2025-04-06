@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/auth.css";
-import Button from "../../components/Button";
+import Button from "../../components/common/Button";
 import axios from "axios";
 
 function Signup() {
@@ -12,7 +12,7 @@ function Signup() {
     phone: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
   const [step, setStep] = useState(1); // 1: Signup, 2: Verify OTP
   const [otp, setOtp] = useState("");
@@ -23,7 +23,7 @@ function Signup() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -38,14 +38,17 @@ function Signup() {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/signup", {
-        hatcheryName: formData.hatcheryName,
-        caaNumber: formData.caaNumber,
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email,
-        password: formData.password
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/signup",
+        {
+          hatcheryName: formData.hatcheryName,
+          caaNumber: formData.caaNumber,
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email,
+          password: formData.password,
+        }
+      );
 
       if (response.data.success) {
         setSuccess(true);
@@ -62,10 +65,13 @@ function Signup() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/verify-email", {
-        email: formData.email,
-        otp
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/verify-email",
+        {
+          email: formData.email,
+          otp,
+        }
+      );
 
       if (response.data.success) {
         setSuccess(true);
@@ -80,10 +86,14 @@ function Signup() {
 
   if (step === 1) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-cover bg-center px-4"
-        style={{ backgroundImage: "url('/images/background.jpg')" }}>
+      <div
+        className="flex min-h-screen items-center justify-center bg-cover bg-center px-4"
+        style={{ backgroundImage: "url('/images/background.jpg')" }}
+      >
         <div className="w-full max-w-2xl rounded-lg bg-white p-8 shadow-lg">
-          <h2 className="text-3xl text-grey font-bold text-center font-sans">SmartHatch</h2>
+          <h2 className="text-3xl text-grey font-bold text-center font-sans">
+            SmartHatch
+          </h2>
 
           <div className="text-center">
             <img
@@ -91,7 +101,9 @@ function Signup() {
               alt="SmartHatch Logo"
               className="mx-auto h-16 w-16 rounded-full"
             />
-            <h2 className="mb-6 text-xl font-semibold text-gray-700">Admin Registration</h2>
+            <h2 className="mb-6 text-xl font-semibold text-gray-700">
+              Admin Registration
+            </h2>
             {error && <p className="text-red-500 mb-4">{error}</p>}
           </div>
 
@@ -201,9 +213,9 @@ function Signup() {
             </div>
 
             <div className="pt-2">
-              <Button 
-                text={loading ? "Registering..." : "Register"} 
-                className="w-full btn btn-primary rounded-md py-2 text-lg" 
+              <Button
+                text={loading ? "Registering..." : "Register"}
+                className="w-full btn btn-primary rounded-md py-2 text-lg"
                 type="submit"
                 disabled={loading}
               />
@@ -213,8 +225,8 @@ function Signup() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Already have an account?{" "}
-              <button 
-                onClick={() => navigate("/login")} 
+              <button
+                onClick={() => navigate("/login")}
                 className="text-blue-500 hover:underline font-medium"
               >
                 Login here
@@ -227,14 +239,22 @@ function Signup() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cover bg-center px-4"
-      style={{ backgroundImage: "url('/images/background.jpg')" }}>
+    <div
+      className="flex min-h-screen items-center justify-center bg-cover bg-center px-4"
+      style={{ backgroundImage: "url('/images/background.jpg')" }}
+    >
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
-        <h2 className="text-3xl text-grey font-bold text-center font-sans">SmartHatch</h2>
+        <h2 className="text-3xl text-grey font-bold text-center font-sans">
+          SmartHatch
+        </h2>
         <div className="text-center">
-          <h2 className="mb-6 text-xl font-semibold text-gray-700">Verify Your Email</h2>
+          <h2 className="mb-6 text-xl font-semibold text-gray-700">
+            Verify Your Email
+          </h2>
           {error && <p className="text-red-500 mb-4">{error}</p>}
-          {success && <p className="text-green-500 mb-4">OTP sent to {formData.email}</p>}
+          {success && (
+            <p className="text-green-500 mb-4">OTP sent to {formData.email}</p>
+          )}
         </div>
 
         <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -252,9 +272,9 @@ function Signup() {
               required
             />
           </div>
-          <Button 
-            text={loading ? "Verifying..." : "Verify OTP"} 
-            className="w-full btn btn-primary rounded-md py-2 text-lg" 
+          <Button
+            text={loading ? "Verifying..." : "Verify OTP"}
+            className="w-full btn btn-primary rounded-md py-2 text-lg"
             type="submit"
             disabled={loading}
           />
