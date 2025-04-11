@@ -1,6 +1,4 @@
 # Environment variables
-.env
-.env.*  
 
 # Logs
 logs
@@ -35,4 +33,4 @@ dist-ssr/
 # OS-specific
 Thumbs.db
 ehthumbs.db
-server/userSeed.js
+
