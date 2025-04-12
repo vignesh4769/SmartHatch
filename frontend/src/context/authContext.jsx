@@ -20,20 +20,23 @@ const AuthProvider = ({ children }) => {
 
   const login = async (userData) => {
     try {
-      // Ensure role is always included in user data
-      const completeUserData = {
-        ...userData,
-        role: userData.role || 'employee' // Default to employee if role not provided
+      if (!userData || !userData.token) {
+        throw new Error('Invalid login response');
+      }
+
+      const { token, _id, role, name, hatcheryName, email } = userData;
+      
+      // Create user object with all necessary data
+      const userToStore = {
+        _id,
+        role: role || 'employee',
+        name,
+        hatcheryName,
+        email,
+        token
       };
       
-      const userToStore = {
-        _id: completeUserData._id,
-        role: completeUserData.role,
-        name: completeUserData.name,
-        hatcheryName: completeUserData.hatcheryName,
-        token: userData.token
-      };
-
+      // Store user data and update state
       setUser(userToStore);
       localStorage.setItem("user", JSON.stringify(userToStore));
     } catch (error) {
@@ -50,6 +53,8 @@ const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       localStorage.removeItem("user");
+      // Clear axios default headers
+      delete axios.defaults.headers.common['Authorization'];
     }
   };
 

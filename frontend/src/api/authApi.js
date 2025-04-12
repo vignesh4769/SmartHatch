@@ -11,6 +11,7 @@ export const login = async (email, password) => {
     });
     
     if (response.data.token) {
+      // Store the complete user data including token
       localStorage.setItem('user', JSON.stringify(response.data));
     }
     return response.data;
@@ -29,6 +30,7 @@ export const logout = async () => {
   } catch (error) {
     console.error('Logout error:', error);
   }
+  // Remove user data which includes the token
   localStorage.removeItem('user');
 };
 

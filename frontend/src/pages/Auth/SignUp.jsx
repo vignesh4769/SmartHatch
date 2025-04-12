@@ -13,6 +13,8 @@ function Signup() {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "admin",
+    isVerified: false
   });
   const [step, setStep] = useState(1); // 1: Signup, 2: Verify OTP
   const [otp, setOtp] = useState("");
@@ -47,6 +49,8 @@ function Signup() {
           phone: formData.phone,
           email: formData.email,
           password: formData.password,
+          role: formData.role,
+          isVerified: formData.isVerified
         }
       );
 

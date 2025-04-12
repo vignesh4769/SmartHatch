@@ -15,9 +15,8 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const user = JSON.parse(localStorage.getItem('user'));
-    const token = user?.token;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (user?.token) {
+      config.headers.Authorization = `Bearer ${user.token}`;
     }
     return config;
   },
@@ -36,17 +35,18 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
-      // Clear user data and redirect to login
+      // Clear user data
       localStorage.removeItem('user');
-      localStorage.removeItem('token');
       
       // Redirect to login page with a message
-      window.location.href = `/login?message=${encodeURIComponent('Your session has expired. Please login again.')}`;
-      return Promise.reject(error);
+      const message = error.response?.data?.message || 'Your session has expired. Please login again.';
+      window.location.href = `/login?message=${encodeURIComponent(message)}`;
+      return Promise.reject(new Error(message));
     }
 
     // Handle other errors
-    return Promise.reject(error.response?.data || error);
+    const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+    return Promise.reject(new Error(errorMessage));
   }
 );
 

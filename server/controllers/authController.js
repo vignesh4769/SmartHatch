@@ -29,8 +29,8 @@ export const login = async (req, res) => {
 
     const user = await User.findOne({ email }).select('+password');
     
-    if (!user) {
-      return res.status(400).json({ 
+    if (!user || !await bcrypt.compare(password, user.password)) {
+      return res.status(401).json({ 
         success: false, 
         error: "Invalid credentials" 
       });
@@ -43,36 +43,38 @@ export const login = async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "Invalid credentials" 
-      });
-    }
-
+    // Generate JWT with required payload
     const token = jwt.sign(
       { 
-        _id: user._id, 
+        _id: user._id,
         role: user.role,
-        email: user.email
+        email: user.email,
+        version: user.tokenVersion || 0 // For token invalidation
       },
       process.env.JWT_KEY,
-      { expiresIn: "10d" }
+      { 
+        expiresIn: "1d", // Shorter expiration time for security
+        audience: 'SmartHatch',
+        issuer: 'SmartHatch-Auth'
+      }
     );
 
-    // Omit sensitive data from response
+    // Update last login time
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Prepare user response without sensitive data
     const userResponse = {
       _id: user._id,
       role: user.role,
       name: user.name,
       hatcheryName: user.hatcheryName,
-      email: user.email
+      email: user.email,
+      token // Include token in user object for frontend
     };
 
     res.status(200).json({
       success: true,
-      token,
       user: userResponse
     });
   } catch (error) {
@@ -89,9 +91,17 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    // In a production system, you might:
-    // 1. Add token to a blacklist
-    // 2. Track logout time in user record
+    const userId = req.user?._id;
+    if (userId) {
+      const user = await User.findById(userId);
+      if (user) {
+        // Increment token version to invalidate all existing tokens
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
+        user.lastLogout = new Date();
+        await user.save();
+      }
+    }
+
     res.status(200).json({ 
       success: true, 
       message: "Logged out successfully" 
