@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from 'axios';
+import api from '../api/config';
 
 const userContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-    return savedUser && token ? JSON.parse(savedUser) : null;
+    return savedUser ? JSON.parse(savedUser) : null;
   });
 
   useEffect(() => {
@@ -19,30 +19,37 @@ const AuthProvider = ({ children }) => {
   }, [user]);
 
   const login = async (userData) => {
-    // Ensure role is always included in user data
-    const completeUserData = {
-      ...userData,
-      role: userData.role || 'employee' // Default to employee if role not provided
-    };
-    
-    setUser(completeUserData);
-    localStorage.setItem("token", userData.token);
-    localStorage.setItem("user", JSON.stringify({
-      _id: completeUserData._id,
-      role: completeUserData.role,
-      name: completeUserData.name,
-      hatcheryName: completeUserData.hatcheryName
-    }));
+    try {
+      // Ensure role is always included in user data
+      const completeUserData = {
+        ...userData,
+        role: userData.role || 'employee' // Default to employee if role not provided
+      };
+      
+      const userToStore = {
+        _id: completeUserData._id,
+        role: completeUserData.role,
+        name: completeUserData.name,
+        hatcheryName: completeUserData.hatcheryName,
+        token: userData.token
+      };
+
+      setUser(userToStore);
+      localStorage.setItem("user", JSON.stringify(userToStore));
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    }
   };
 
   const logout = async () => {
     try {
-      await axios.post("http://localhost:5000/api/auth/logout");
-      setUser(null);
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      await api.post("/api/auth/logout");
     } catch (error) {
       console.error("Logout failed:", error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem("user");
     }
   };
 

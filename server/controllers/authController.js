@@ -16,26 +16,10 @@ const transporter = nodemailer.createTransport({
 // Generate 4-digit OTP
 const generateOTP = () => crypto.randomInt(1000, 9999).toString();
 
-// Token verification middleware (for logout)
-export const verifyToken = async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.json({ valid: false });
-    }
-
-    jwt.verify(token, process.env.JWT_KEY);
-    res.json({ valid: true });
-  } catch (error) {
-    res.json({ valid: false });
-  }
-};
-
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({ 
         success: false, 
@@ -48,7 +32,7 @@ export const login = async (req, res) => {
     if (!user) {
       return res.status(400).json({ 
         success: false, 
-        error: "Invalid credentials" // Generic message for security
+        error: "Invalid credentials" 
       });
     }
 
@@ -100,6 +84,9 @@ export const login = async (req, res) => {
   }
 };
 
+// Other controller functions remain the same as in your original code
+// (signup, verifyEmail, forgotPassword, verifyOTP, resetPassword, logout)
+
 export const logout = async (req, res) => {
   try {
     // In a production system, you might:
@@ -118,6 +105,24 @@ export const logout = async (req, res) => {
   }
 };
 
+// Password validation rules
+const validatePassword = (password) => {
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  const errors = [];
+  if (password.length < minLength) errors.push(`Password must be at least ${minLength} characters long`);
+  if (!hasUpperCase) errors.push('Password must contain at least one uppercase letter');
+  if (!hasLowerCase) errors.push('Password must contain at least one lowercase letter');
+  if (!hasNumbers) errors.push('Password must contain at least one number');
+  if (!hasSpecialChar) errors.push('Password must contain at least one special character');
+
+  return errors;
+};
+
 export const signup = async (req, res) => {
   try {
     const { hatcheryName, caaNumber, name, phone, email, password } = req.body;
@@ -127,6 +132,16 @@ export const signup = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "All fields are required"
+      });
+    }
+
+    // Validate password strength
+    const passwordErrors = validatePassword(password);
+    if (passwordErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Password validation failed",
+        details: passwordErrors
       });
     }
 
@@ -359,10 +374,13 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length < 4) {
+    // Validate password strength
+    const passwordErrors = validatePassword(newPassword);
+    if (passwordErrors.length > 0) {
       return res.status(400).json({
         success: false,
-        error: "Password must be at least 4 characters"
+        error: "Password validation failed",
+        details: passwordErrors
       });
     }
 

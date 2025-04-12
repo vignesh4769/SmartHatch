@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useAuth } from '../../context/authContext';
-import AttendanceTable from '../../components/admin/AttendanceTable';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import AttendanceTable from "../../components/admin/AttendanceTable";
 
 const AttendanceManagement = () => {
   const [attendanceData, setAttendanceData] = useState([]);
@@ -11,10 +11,10 @@ const AttendanceManagement = () => {
   useEffect(() => {
     const fetchAttendanceData = async () => {
       try {
-        const response = await axios.get('/api/admin/attendance');
+        const response = await axios.get("/api/admin/attendance");
         setAttendanceData(response.data);
       } catch (error) {
-        console.error('Error fetching attendance data:', error);
+        console.error("Error fetching attendance data:", error);
       } finally {
         setLoading(false);
       }
@@ -26,11 +26,13 @@ const AttendanceManagement = () => {
   const handleUpdateAttendance = async (id, status) => {
     try {
       await axios.put(`/api/admin/attendance/${id}`, { status });
-      setAttendanceData(attendanceData.map(item => 
-        item._id === id ? { ...item, status } : item
-      ));
+      setAttendanceData(
+        attendanceData.map((item) =>
+          item._id === id ? { ...item, status } : item
+        )
+      );
     } catch (error) {
-      console.error('Error updating attendance:', error);
+      console.error("Error updating attendance:", error);
     }
   };
 
@@ -40,9 +42,9 @@ const AttendanceManagement = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Attendance Management</h1>
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <AttendanceTable 
-          data={attendanceData} 
-          onUpdate={handleUpdateAttendance} 
+        <AttendanceTable
+          data={attendanceData}
+          onUpdate={handleUpdateAttendance}
           hatcheryName={user.hatcheryName}
         />
       </div>

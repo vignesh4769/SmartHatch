@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useAuth } from '../../context/authContext';
-import InputField from '../../components/common/InputField';
-import Button from '../../components/common/Button';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useAuth } from "../../context/AuthContext";
+import InputField from "../../components/common/InputField";
+import Button from "../../components/common/Button";
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    hatcheryName: ''
+    name: "",
+    email: "",
+    phone: "",
+    hatcheryName: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -19,8 +19,8 @@ const Profile = () => {
       setFormData({
         name: user.name,
         email: user.email,
-        phone: user.phone || '',
-        hatcheryName: user.hatcheryName || ''
+        phone: user.phone || "",
+        hatcheryName: user.hatcheryName || "",
       });
     }
   }, [user]);
@@ -33,11 +33,11 @@ const Profile = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.put('/api/profile', formData);
+      const res = await axios.put("/api/profile", formData);
       updateUser(res.data.user);
       // Show success message
     } catch (err) {
-      console.error('Error updating profile:', err);
+      console.error("Error updating profile:", err);
       // Show error message
     } finally {
       setLoading(false);
@@ -47,7 +47,7 @@ const Profile = () => {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">My Profile</h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <InputField
           label="Full Name"
@@ -56,7 +56,7 @@ const Profile = () => {
           onChange={handleChange}
           required
         />
-        
+
         <InputField
           label="Email"
           name="email"
@@ -66,7 +66,7 @@ const Profile = () => {
           required
           disabled
         />
-        
+
         <InputField
           label="Phone Number"
           name="phone"
@@ -74,8 +74,8 @@ const Profile = () => {
           value={formData.phone}
           onChange={handleChange}
         />
-        
-        {user?.role === 'admin' && (
+
+        {user?.role === "admin" && (
           <InputField
             label="Hatchery Name"
             name="hatcheryName"

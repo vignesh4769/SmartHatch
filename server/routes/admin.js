@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect, admin } from '../middleware/authMiddleware.js';
+import { getDashboardStats } from '../controllers/adminController.js';
 import {
   getEmployees,
   registerEmployee,
@@ -10,6 +11,9 @@ import {
 const router = express.Router();
 
 router.use(protect, admin);
+
+// Dashboard
+router.get('/dashboard', getDashboardStats);
 
 // Employee Management
 router.get('/employees', getEmployees);

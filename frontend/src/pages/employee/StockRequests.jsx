@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/authContext';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import axios from "axios";
 
 const StockRequests = () => {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    itemName: '',
+    itemName: "",
     quantity: 1,
-    urgency: 'normal',
-    notes: ''
+    urgency: "normal",
+    notes: "",
   });
 
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const response = await axios.get('/api/employee/stock-requests');
+        const response = await axios.get("/api/employee/stock-requests");
         setRequests(response.data);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch requests');
+        setError(err.response?.data?.message || "Failed to fetch requests");
       } finally {
         setLoading(false);
       }
@@ -31,26 +31,26 @@ const StockRequests = () => {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/employee/stock-requests', {
+      const response = await axios.post("/api/employee/stock-requests", {
         ...formData,
-        employeeId: user._id
+        employeeId: user._id,
       });
       setRequests([...requests, response.data]);
       setFormData({
-        itemName: '',
+        itemName: "",
         quantity: 1,
-        urgency: 'normal',
-        notes: ''
+        urgency: "normal",
+        notes: "",
       });
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit request');
+      setError(err.response?.data?.message || "Failed to submit request");
     }
   };
 
@@ -60,7 +60,7 @@ const StockRequests = () => {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Stock Requests</h1>
-      
+
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">New Request</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -93,7 +93,7 @@ const StockRequests = () => {
               />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Urgency
@@ -110,7 +110,7 @@ const StockRequests = () => {
               <option value="critical">Critical</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Notes
@@ -123,7 +123,7 @@ const StockRequests = () => {
               rows={3}
             />
           </div>
-          
+
           <button
             type="submit"
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -132,7 +132,7 @@ const StockRequests = () => {
           </button>
         </form>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <h2 className="text-xl font-semibold p-6">My Requests</h2>
         {requests.length === 0 ? (
@@ -141,23 +141,39 @@ const StockRequests = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Item
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Quantity
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {requests.map((request) => (
                 <tr key={request._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{request.itemName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{request.quantity}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      request.status === 'approved' ? 'bg-green-100 text-green-800' :
-                      request.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
+                    {request.itemName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {request.quantity}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full ${
+                        request.status === "approved"
+                          ? "bg-green-100 text-green-800"
+                          : request.status === "rejected"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
                       {request.status}
                     </span>
                   </td>

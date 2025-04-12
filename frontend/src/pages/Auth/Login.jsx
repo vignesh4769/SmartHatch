@@ -1,46 +1,39 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "../../styles/auth.css";
 import Button from "../../components/common/Button";
 import ForgotPassword from "./ForgotPassword";
-import axios from "axios";
-import { useAuth } from "../../context/authContext";
+import { login as authLogin } from "../../api/authApi";
+import { useAuth } from "../../context/AuthContext";
 
-function Login({ setUserRole }) {
+function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
-        {
-          email,
-          password,
-        }
-      );
-
-      if (response.data.success) {
-        login(response.data.user);
-        localStorage.setItem("token", response.data.token);
-
-        if (response.data.user.role === "admin") {
-          navigate("/admin/dashboard");
-        } else {
-          navigate("/employee/dashboard");
-        }
+      const data = await authLogin(email, password);
+      if (data) {
+        login(data.user);
+        
+        // Get the redirect path from location state or use default based on role
+        const from = location.state?.from?.pathname || 
+          (data.user.role === "admin" ? "/admin/dashboard" : "/employee/dashboard");
+        
+        navigate(from, { replace: true });
       }
     } catch (error) {
       if (error.response && !error.response.data.success) {
         setError(error.response.data.error);
       } else {
-        setError("An error occurred at the server side");
+        setError(error.message || "An error occurred at the server side");
       }
     }
   };
@@ -78,7 +71,7 @@ function Login({ setUserRole }) {
               Email
             </label>
             <input
-              type="text"
+              type="email"
               id="email"
               className="input input-bordered w-full mt-1 p-2"
               value={email}
@@ -101,6 +94,7 @@ function Login({ setUserRole }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength="4"
             />
           </div>
 
@@ -117,7 +111,11 @@ function Login({ setUserRole }) {
             </label>
           </div>
 
-          <Button text="Login" className="w-full btn btn-primary rounded-md" />
+          <Button 
+            type="submit"
+            text="Login" 
+            className="w-full btn btn-primary rounded-md" 
+          />
         </form>
 
         <div className="mt-2 text-center">

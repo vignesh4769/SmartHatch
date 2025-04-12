@@ -1,30 +1,49 @@
-import axios from 'axios';
-import { getAuthHeader } from './authApi';
+import api from './config';
 
 // ✅ Use full backend URL
-const API_URL = 'http://localhost:5000/api/admin';
+const API_URL = '/api';
 
 // Employee Management API
 
-export const getEmployees = async () => {
-  const response = await axios.get(`${API_URL}/employees`, getAuthHeader());
-  return response.data;
+export const getEmployees = async (page = 1, limit = 10, filters = {}) => {
+  try {
+    const params = {
+      page,
+      limit,
+      ...filters
+    };
+    const response = await api.get(`${API_URL}/employees`, { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { error: 'Failed to fetch employees' };
+  }
 };
 
 export const createEmployee = async (employeeData) => {
-  const response = await axios.post(`${API_URL}/employees/register`, employeeData, getAuthHeader());
-  return response.data;
+  try {
+    const response = await api.post(`${API_URL}/employees/register`, employeeData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { error: 'Failed to create employee' };
+  }
 };
 
 export const updateEmployee = async (id, employeeData) => {
-  const response = await axios.put(`${API_URL}/employees/${id}`, employeeData, getAuthHeader());
-  return response.data;
+  try {
+    const response = await api.put(`${API_URL}/employees/${id}`, employeeData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { error: 'Failed to update employee' };
+  }
 };
 
 export const deleteEmployee = async (id, reason) => {
-  const response = await axios.delete(`${API_URL}/employees/${id}`, {
-    ...getAuthHeader(),
-    data: { reason },
-  });
-  return response.data;
+  try {
+    const response = await api.delete(`${API_URL}/employees/${id}`, {
+      data: { reason }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { error: 'Failed to delete employee' };
+  }
 };

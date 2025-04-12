@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/authContext';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import LeaveApplication from './LeaveApplication';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import LeaveApplication from "./LeaveApplication";
 
 const MyLeaves = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showApplicationForm, setShowApplicationForm] = useState(false);
 
   useEffect(() => {
     const fetchLeaves = async () => {
       try {
-        const response = await axios.get('/api/employee/leaves');
+        const response = await axios.get("/api/employee/leaves");
         setLeaves(response.data.leaves);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch leaves');
+        setError(err.response?.data?.message || "Failed to fetch leaves");
       } finally {
         setLoading(false);
       }
@@ -39,10 +39,14 @@ const MyLeaves = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -79,11 +83,21 @@ const MyLeaves = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Period
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Days
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Type
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Reason
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -97,18 +111,27 @@ const MyLeaves = () => {
               leaves.map((leave) => (
                 <tr key={leave._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {format(new Date(leave.startDate), 'MMM dd, yyyy')} - {format(new Date(leave.endDate), 'MMM dd, yyyy')}
+                    {format(new Date(leave.startDate), "MMM dd, yyyy")} -{" "}
+                    {format(new Date(leave.endDate), "MMM dd, yyyy")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {calculateLeaveDays(leave.startDate, leave.endDate)} days
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap capitalize">{leave.type}</td>
+                  <td className="px-6 py-4 whitespace-nowrap capitalize">
+                    {leave.type}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(leave.status)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                        leave.status
+                      )}`}
+                    >
                       {leave.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-700 max-w-xs truncate">{leave.reason}</td>
+                  <td className="px-6 py-4 text-gray-700 max-w-xs truncate">
+                    {leave.reason}
+                  </td>
                 </tr>
               ))
             )}
