@@ -1,24 +1,17 @@
 import mongoose from 'mongoose';
 const employeeSchema = new mongoose.Schema({
-  userId: {
+  user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
     unique: true
   },
-  firstName: {
+  employeeId: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
-  lastName: {
-    type: String,
-    required: true
-  },
-  phone: {
-    type: String,
-    required: true
-  },
-  address: {
+  department: {
     type: String,
     required: true
   },
@@ -26,27 +19,35 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  department: {
-    type: String,
+  salary: {
+    type: Number,
     required: true
   },
   joiningDate: {
     type: Date,
     required: true
   },
-  salary: {
-    type: Number,
-    required: true
-  },
-  isActive: {
-    type: Boolean,
-    default: true
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'suspended'],
+    default: 'active'
   },
   emergencyContact: {
     name: String,
     relation: String,
     phone: String
-  }
+  },
+  bankDetails: {
+    accountName: String,
+    accountNumber: String,
+    bankName: String,
+    ifscCode: String
+  },
+  deletedAt: {
+    type: Date,
+    default: null
+  },
+  deletionReason: String
 }, { timestamps: true });
 
 // Soft delete method

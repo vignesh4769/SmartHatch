@@ -22,7 +22,9 @@ export const getEmployees = asyncHandler(async (req, res) => {
     .populate('user', 'name email phone')
     .limit(limit * 1)
     .skip((page - 1) * limit)
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean()
+    .exec();
 
   const count = await Employee.countDocuments(query);
 
@@ -86,7 +88,10 @@ export const registerEmployee = asyncHandler(async (req, res) => {
     bankDetails
   });
 
-  const createdEmployee = await Employee.findById(employee._id).populate('user', 'name email phone');
+  const createdEmployee = await Employee.findById(employee._id)
+    .populate('user', 'name email phone')
+    .lean()
+    .exec();
 
   res.status(201).json(createdEmployee);
 });
@@ -95,7 +100,9 @@ export const registerEmployee = asyncHandler(async (req, res) => {
 // @route   PUT /api/admin/employees/:id
 // @access  Private/Admin
 export const updateEmployee = asyncHandler(async (req, res) => {
-  const employee = await Employee.findById(req.params.id).populate('user');
+  const employee = await Employee.findById(req.params.id)
+    .populate('user', 'name email phone')
+    .exec();
   
   if (!employee || employee.deletedAt) {
     res.status(404);
@@ -161,7 +168,9 @@ export const deleteEmployee = asyncHandler(async (req, res) => {
 export const getEmployeeProfile = asyncHandler(async (req, res) => {
   const employee = await Employee.findOne({ user: req.user._id })
     .populate('user', 'name email phone')
-    .select('-deletedAt -deletionReason');
+    .select('-deletedAt -deletionReason')
+    .lean()
+    .exec();
 
   if (!employee) {
     res.status(404);
@@ -175,7 +184,10 @@ export const getEmployeeProfile = asyncHandler(async (req, res) => {
 // @route   GET /api/employee/dashboard
 // @access  Private/Employee
 export const getDashboardStats = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id });
+  const employee = await Employee.findOne({ user: req.user._id })
+    .populate('user', 'name email phone')
+    .lean()
+    .exec();
   
   if (!employee) {
     res.status(404);
@@ -218,7 +230,10 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
 // @route   GET /api/employee/attendance
 // @access  Private/Employee
 export const getMyAttendance = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id });
+  const employee = await Employee.findOne({ user: req.user._id })
+    .populate('user', 'name email phone')
+    .lean()
+    .exec();
   
   if (!employee) {
     res.status(404);
@@ -241,7 +256,10 @@ export const getMyAttendance = asyncHandler(async (req, res) => {
 // @access  Private/Employee
 export const applyForLeave = asyncHandler(async (req, res) => {
   const { startDate, endDate, reason, leaveType } = req.body;
-  const employee = await Employee.findOne({ user: req.user._id });
+  const employee = await Employee.findOne({ user: req.user._id })
+    .populate('user', 'name email phone')
+    .lean()
+    .exec();
 
   if (!employee) {
     res.status(404);
@@ -264,7 +282,10 @@ export const applyForLeave = asyncHandler(async (req, res) => {
 // @route   GET /api/employee/leaves
 // @access  Private/Employee
 export const getMyLeaves = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id });
+  const employee = await Employee.findOne({ user: req.user._id })
+    .populate('user', 'name email phone')
+    .lean()
+    .exec();
   
   if (!employee) {
     res.status(404);
@@ -281,7 +302,10 @@ export const getMyLeaves = asyncHandler(async (req, res) => {
 // @route   GET /api/employee/salary
 // @access  Private/Employee
 export const getSalaryDetails = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id });
+  const employee = await Employee.findOne({ user: req.user._id })
+    .populate('user', 'name email phone')
+    .lean()
+    .exec();
   
   if (!employee) {
     res.status(404);
@@ -311,7 +335,10 @@ export const getSalaryDetails = asyncHandler(async (req, res) => {
 // @access  Private/Employee
 export const createStockRequest = asyncHandler(async (req, res) => {
   const { itemName, quantity, urgency, notes } = req.body;
-  const employee = await Employee.findOne({ user: req.user._id });
+  const employee = await Employee.findOne({ user: req.user._id })
+    .populate('user', 'name email phone')
+    .lean()
+    .exec();
 
   if (!employee) {
     res.status(404);

@@ -1,7 +1,7 @@
 import api from './config';
 
 // ✅ Use full backend URL
-const API_URL = '/api';
+const API_URL = '/api/admin';
 
 // Employee Management API
 
@@ -13,7 +13,7 @@ export const getEmployees = async (page = 1, limit = 10, filters = {}) => {
       ...filters
     };
     const response = await api.get(`${API_URL}/employees`, { params });
-    return response.data;
+    return response.data.employees;
   } catch (error) {
     throw error.response?.data || { error: 'Failed to fetch employees' };
   }
@@ -45,5 +45,25 @@ export const deleteEmployee = async (id, reason) => {
     return response.data;
   } catch (error) {
     throw error.response?.data || { error: 'Failed to delete employee' };
+  }
+};
+
+// Employee Profile API
+export const getEmployeeProfile = async () => {
+  try {
+    const response = await api.get(`${API_URL}/employees/profile`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { error: 'Failed to fetch employee profile' };
+  }
+};
+
+// Employee Dashboard Stats
+export const getEmployeeDashboardStats = async () => {
+  try {
+    const response = await api.get(`${API_URL}/employees/dashboard`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { error: 'Failed to fetch dashboard stats' };
   }
 };
