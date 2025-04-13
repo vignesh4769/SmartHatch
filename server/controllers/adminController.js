@@ -1,7 +1,28 @@
 import User from '../models/User.js';
 import Attendance from '../models/Attendance.js';
+import LeaveRequest from '../models/LeaveRequest.js';
 
 // Get dashboard statistics
+// Get pending leave requests
+
+export const getPendingLeaves = async (req, res) => {
+  try {
+    const hatcheryId = req.user.hatcheryId;
+    const pendingLeaves = await LeaveRequest.find({ 
+      hatcheryId,
+      status: 'pending' 
+    }).populate('employeeId', 'name employeeId');
+    
+    res.status(200).json(pendingLeaves);
+  } catch (error) {
+    console.error('Error fetching pending leaves:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error while fetching pending leaves' 
+    });
+  }
+};
+
 export const getDashboardStats = async (req, res) => {
   try {
     const hatcheryId = req.user.hatcheryId;

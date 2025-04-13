@@ -42,11 +42,6 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    // Handle file upload if exists
-    if (req.file) {
-      user.profileImage = `/uploads/profile/${req.file.filename}`;
-    }
-
     // Update fields
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
@@ -68,7 +63,7 @@ export const updateProfile = async (req, res) => {
       address: user.address,
       gender: user.gender,
       shift: user.shift,
-      profileImage: user.profileImage,
+      
       joinDate: user.joinDate
     };
 

@@ -4,19 +4,16 @@ import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
 import messApi from '../../api/messApi';
 import { toast } from 'react-toastify';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const MessManagement = () => {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  // Fetch mess schedules
   const { data: schedules, isLoading } = useQuery({
     queryKey: ['messSchedules', selectedDate],
     queryFn: () => messApi.getMessSchedules(selectedDate, selectedDate),
   });
 
-  // Fetch mess statistics
   const { data: stats } = useQuery({
     queryKey: ['messStats'],
     queryFn: messApi.getMessStats,
@@ -24,7 +21,6 @@ const MessManagement = () => {
 
   const { register, handleSubmit, reset } = useForm();
 
-  // Create schedule mutation
   const createScheduleMutation = useMutation({
     mutationFn: messApi.createMessSchedule,
     onSuccess: () => {
@@ -37,7 +33,6 @@ const MessManagement = () => {
     },
   });
 
-  // Update schedule mutation
   const updateScheduleMutation = useMutation({
     mutationFn: ({ id, data }) => messApi.updateMessSchedule(id, data),
     onSuccess: () => {
@@ -49,7 +44,6 @@ const MessManagement = () => {
     },
   });
 
-  // Delete schedule mutation
   const deleteScheduleMutation = useMutation({
     mutationFn: messApi.deleteMessSchedule,
     onSuccess: () => {
@@ -62,42 +56,46 @@ const MessManagement = () => {
   });
 
   const onSubmit = (data) => {
-    createScheduleMutation.mutate({
+    const payload = {
       date: selectedDate,
-      ...data,
-    });
+      mealType: data.mealType,
+      menu: data.menu.split('\n').filter(item => item.trim()),
+      startTime: data.startTime,
+      endTime: data.endTime
+    };
+    createScheduleMutation.mutate(payload);
   };
 
   return (
-    <div className="container mx-auto p-6 ml-48">
-      <h2 className="text-3xl font-bold text-center mb-6">Mess Management</h2>
-      <p className="text-center text-gray-600 mb-4">Manage daily food schedules for employees.</p>
+    <div className="pt-20 pl-56 pr-6 pb-10 min-h-screen bg-gray-50">
+      <h2 className="text-3xl font-bold mb-2 text-center text-gray-800">Mess Management</h2>
+      <p className="text-center text-gray-600 mb-8">Manage daily food schedules for employees.</p>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="stat bg-base-100 shadow rounded-lg">
-          <div className="stat-title">Total Meals Served</div>
-          <div className="stat-value">{stats?.totalMeals || 0}</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="text-sm text-gray-500">Total Meals Served</div>
+          <div className="text-2xl font-bold">{stats?.totalMeals || 0}</div>
         </div>
-        <div className="stat bg-base-100 shadow rounded-lg">
-          <div className="stat-title">Today's Attendance</div>
-          <div className="stat-value">{stats?.todayAttendance || 0}</div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="text-sm text-gray-500">Today's Attendance</div>
+          <div className="text-2xl font-bold">{stats?.todayAttendance || 0}</div>
         </div>
-        <div className="stat bg-base-100 shadow rounded-lg">
-          <div className="stat-title">Special Requests</div>
-          <div className="stat-value">{stats?.specialRequests || 0}</div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="text-sm text-gray-500">Special Requests</div>
+          <div className="text-2xl font-bold">{stats?.specialRequests || 0}</div>
         </div>
       </div>
 
-      {/* Date Selection */}
-      <div className="card bg-base-100 shadow-lg p-4 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold">Mess Schedule</h3>
+      {/* Date Selection & Table */}
+      <div className="bg-white shadow rounded-lg p-6 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+          <h3 className="text-xl font-semibold text-gray-800">Mess Schedule</h3>
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="input input-bordered"
+            className="input input-bordered w-full md:w-60"
           />
         </div>
 
@@ -117,7 +115,7 @@ const MessManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {schedules?.map((schedule) => (
+                {Array.isArray(schedules) && schedules.map(schedule => (
                   <tr key={schedule._id}>
                     <td>{schedule.mealType}</td>
                     <td>{schedule.menu}</td>
@@ -148,13 +146,11 @@ const MessManagement = () => {
       </div>
 
       {/* Add New Schedule Form */}
-      <div className="card bg-base-100 shadow-lg p-4">
-        <h3 className="text-xl font-semibold mb-4">Add New Schedule</h3>
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-xl font-semibold mb-4 text-gray-800">Add New Schedule</h3>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Meal Type</span>
-            </label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Meal Type</label>
             <select {...register('mealType')} className="select select-bordered w-full">
               <option value="breakfast">Breakfast</option>
               <option value="lunch">Lunch</option>
@@ -163,25 +159,21 @@ const MessManagement = () => {
             </select>
           </div>
 
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Menu</span>
-            </label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Menu</label>
             <textarea
-              {...register('menu')}
-              className="textarea textarea-bordered h-24"
-              placeholder="Enter menu items..."
+              {...register('menu', { required: 'Menu is required' })}
+              className="textarea textarea-bordered w-full h-24"
+              placeholder="Enter menu items (one per line)..."
             />
           </div>
 
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Time</span>
-            </label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
             <input
               type="time"
-              {...register('time')}
-              className="input input-bordered"
+              {...register('time', { required: 'Time is required' })}
+              className="input input-bordered w-full"
             />
           </div>
 

@@ -6,30 +6,20 @@ import asyncHandler from 'express-async-handler';
 // @route   POST /api/mess/schedule
 // @access  Private/Admin
 export const createMessSchedule = asyncHandler(async (req, res) => {
-  const {
-    date,
-    meal,
-    menu,
-    startTime,
-    endTime,
-    capacity,
-    specialNotes
-  } = req.body;
+  const { date, meal: mealType, menu, startTime, endTime } = req.body;
 
-  if (!date || !meal || !menu || !startTime || !endTime || !capacity) {
+  if (!date || !mealType || !menu || !startTime || !endTime || !Array.isArray(menu) || !menu.every(item => item.name && item.category && item.cost)) {
     res.status(400);
-    throw new Error('Please provide all required fields');
+    throw new Error('Invalid request format');
   }
 
   const schedule = await MessSchedule.create({
     hatchery: req.user.hatcheryId,
-    date,
-    meal,
-    menu,
-    startTime,
-    endTime,
-    capacity,
-    specialNotes
+    date: new Date(date),
+    mealType,
+    menu: Array.isArray(menu) ? menu : [menu],
+    startTime: startTime,
+    endTime: endTime
   });
 
   res.status(201).json({
@@ -66,16 +56,7 @@ export const getMessSchedules = asyncHandler(async (req, res) => {
 // @route   PUT /api/mess/schedule/:id
 // @access  Private/Admin
 export const updateMessSchedule = asyncHandler(async (req, res) => {
-  const {
-    date,
-    meal,
-    menu,
-    startTime,
-    endTime,
-    capacity,
-    specialNotes,
-    status
-  } = req.body;
+  const { date, mealType, menu, startTime, endTime, status, capacity, specialNotes } = req.body;
 
   const schedule = await MessSchedule.findById(req.params.id);
 
@@ -90,8 +71,8 @@ export const updateMessSchedule = asyncHandler(async (req, res) => {
   }
 
   schedule.date = date || schedule.date;
-  schedule.meal = meal || schedule.meal;
-  schedule.menu = menu || schedule.menu;
+  schedule.mealType = mealType || schedule.mealType;
+  schedule.menu = Array.isArray(menu) ? menu : [menu];
   schedule.startTime = startTime || schedule.startTime;
   schedule.endTime = endTime || schedule.endTime;
   schedule.capacity = capacity || schedule.capacity;
@@ -134,19 +115,43 @@ export const deleteMessSchedule = asyncHandler(async (req, res) => {
 // @route   GET /api/mess/stats
 // @access  Private/Admin
 export const getMessStats = asyncHandler(async (req, res) => {
-  const totalSchedules = await MessSchedule.countDocuments({
+  const totalMeals = await MessSchedule.countDocuments({
     hatchery: req.user.hatcheryId
   });
 
-  const totalEmployees = await Employee.countDocuments({
-    hatchery: req.user.hatcheryId
+  const today = new Date().toISOString().split('T')[0];
+
+  const todayAttendance = await MessSchedule.aggregate([
+    {
+      $match: {
+        hatchery: req.user.hatcheryId,
+        date: new Date(today)
+      }
+    },
+    {
+      $project: {
+        attendees: { $size: '$attendees' }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: '$attendees' }
+      }
+    }
+  ]);
+
+  const specialRequests = await MessSchedule.countDocuments({
+    hatchery: req.user.hatcheryId,
+    specialNotes: { $ne: null }
   });
 
   res.json({
     success: true,
     data: {
-      totalSchedules,
-      totalEmployees
+      totalMeals,
+      todayAttendance: todayAttendance[0]?.total || 0,
+      specialRequests
     }
   });
 });
@@ -172,17 +177,11 @@ export const markMessAttendance = asyncHandler(async (req, res) => {
     throw new Error('Mess schedule is not active');
   }
 
-  const currentAttendees = schedule.attendees.length;
-  if (currentAttendees >= schedule.capacity) {
-    res.status(400);
-    throw new Error('Mess capacity full');
-  }
-
-  const existingAttendance = schedule.attendees.find(
+  const isAlreadyMarked = schedule.attendees.find(
     a => a.employee.toString() === req.user._id.toString()
   );
 
-  if (existingAttendance) {
+  if (isAlreadyMarked) {
     res.status(400);
     throw new Error('Attendance already marked');
   }
@@ -222,17 +221,15 @@ export const getMessReport = asyncHandler(async (req, res) => {
 
   const report = {
     totalMeals: schedules.length,
-    totalAttendees: schedules.reduce((sum, schedule) => 
-      sum + schedule.attendees.length, 0
-    ),
-    mealsByType: schedules.reduce((acc, schedule) => {
-      acc[schedule.meal] = (acc[schedule.meal] || 0) + 1;
+    totalAttendees: schedules.reduce((sum, s) => sum + s.attendees.length, 0),
+    mealsByType: schedules.reduce((acc, s) => {
+      acc[s.meal] = (acc[s.meal] || 0) + 1;
       return acc;
     }, {}),
-    averageAttendance: schedules.length > 0 ?
-      Math.round(schedules.reduce((sum, schedule) => 
-        sum + schedule.attendees.length, 0
-      ) / schedules.length) : 0
+    averageAttendance:
+      schedules.length > 0
+        ? Math.round(schedules.reduce((sum, s) => sum + s.attendees.length, 0) / schedules.length)
+        : 0
   };
 
   res.json({

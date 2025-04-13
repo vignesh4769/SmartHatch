@@ -20,7 +20,7 @@ const EmployeeTable = ({ employees = [], onEdit, onDelete }) => {
         <tbody>
           {safeEmployees.length > 0 ? (
             safeEmployees.map((employee) => (
-              <tr key={employee.id} className="hover:bg-gray-50">
+              <tr key={employee._id} className="hover:bg-gray-50">
                 <td className="py-2 px-4 border">{employee.id}</td>
                 <td className="py-2 px-4 border">{employee.name}</td>
                 <td className="py-2 px-4 border">{employee.email}</td>

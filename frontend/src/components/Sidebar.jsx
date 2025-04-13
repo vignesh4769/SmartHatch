@@ -14,7 +14,6 @@ const AdminSidebar = () => {
 
   const navItems = [
     { path: "/admin/employees", icon: <FiUsers size={18} />, label: "Employee Management" },
-    { path: "/admin/employees/register", icon: <FiUsers size={18} />, label: "Register Employee" },
     { path: "/admin/attendance", icon: <FiCalendar size={18} />, label: "Attendance" },
     { path: "/admin/leaves", icon: <FiFileText size={18} />, label: "Leave Approval" },
     { path: "/admin/runs", icon: <FiTrendingUp size={18} />, label: "Run Management" },

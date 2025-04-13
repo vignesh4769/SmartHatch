@@ -13,7 +13,18 @@ const messApi = {
 
   // Create a new mess schedule
   createMessSchedule: async (scheduleData) => {
-    const response = await api.post('/api/mess/schedule', scheduleData);
+    const formattedData = {
+      date: scheduleData.date,
+      mealType: scheduleData.mealType,
+      startTime: scheduleData.startTime,
+      endTime: scheduleData.endTime,
+      menu: scheduleData.menu.map(item => ({
+        name: item.name,
+        category: item.category,
+        cost: item.cost
+      }))
+    };
+    const response = await api.post('/api/mess/schedule', formattedData);
     return response.data;
   },
 

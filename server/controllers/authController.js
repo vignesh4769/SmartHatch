@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Employee from "../models/Employee.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
@@ -28,6 +29,17 @@ export const login = async (req, res) => {
     }
 
     const user = await User.findOne({ email }).select('+password');
+    
+    // For employee role, verify employee record exists
+    if (user && user.role === 'employee') {
+      const employee = await Employee.findOne({ user: user._id });
+      if (!employee) {
+        return res.status(401).json({
+          success: false,
+          error: "Employee record not found"
+        });
+      }
+    }
     
     if (!user || !await bcrypt.compare(password, user.password)) {
       return res.status(401).json({ 
@@ -64,13 +76,28 @@ export const login = async (req, res) => {
     await user.save();
 
     // Prepare user response without sensitive data
+    // Get employee data if user is an employee
+    let employeeData = null;
+    if (user.role === 'employee') {
+      const employee = await Employee.findOne({ user: user._id });
+      if (employee) {
+        employeeData = {
+          employeeId: employee.employeeId,
+          department: employee.department,
+          position: employee.position
+        };
+      }
+    }
+
     const userResponse = {
       _id: user._id,
       role: user.role,
       name: user.name,
       hatcheryName: user.hatcheryName,
+      caaNumber: user.caaNumber,
       email: user.email,
-      token // Include token in user object for frontend
+      token, // Include token in user object for frontend
+      ...(employeeData && { employee: employeeData }) // Include employee data if available
     };
 
     res.status(200).json({

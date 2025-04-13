@@ -117,6 +117,14 @@ const AppRoutes = () => {
             }
           />
           <Route
+            path="/admin/runs"
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <RunManagement />
+              </Suspense>
+            }
+          />
+          <Route
             path="/admin/inventory"
             element={
               <Suspense fallback={<LoadingSpinner />}>

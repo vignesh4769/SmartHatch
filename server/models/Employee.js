@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+
 const employeeSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -10,6 +11,20 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true
+  },
+  name: {
+    type: String,
+    required: true
+  },
+  email: {
+    type: String,
+    required: true,
+    lowercase: true,
+    unique: true
+  },
+  phone: {
+    type: String,
+    required: true
   },
   department: {
     type: String,
@@ -25,6 +40,7 @@ const employeeSchema = new mongoose.Schema({
   },
   joiningDate: {
     type: Date,
+    default: Date.now,
     required: true
   },
   status: {
@@ -33,15 +49,35 @@ const employeeSchema = new mongoose.Schema({
     default: 'active'
   },
   emergencyContact: {
-    name: String,
-    relation: String,
-    phone: String
+    name: {
+      type: String,
+      required: true
+    },
+    relation: {
+      type: String,
+      required: true
+    },
+    phone: {
+      type: String,
+      required: true
+    }
   },
-  bankDetails: {
-    accountName: String,
-    accountNumber: String,
-    bankName: String,
-    ifscCode: String
+  address: {
+    type: String,
+    required: true
+  },
+  age: {
+    type: Number,
+    required: true
+  },
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other'],
+    required: true
+  },
+  shiftTimings: {
+    type: String,
+    required: true
   },
   deletedAt: {
     type: Date,
@@ -50,14 +86,5 @@ const employeeSchema = new mongoose.Schema({
   deletionReason: String
 }, { timestamps: true });
 
-// Soft delete method
-employeeSchema.methods.softDelete = async function(reason) {
-  this.deletedAt = new Date();
-  this.deletionReason = reason;
-  this.status = 'inactive';
-  await this.save();
-};
-
 const Employee = mongoose.model('Employee', employeeSchema);
-
 export default Employee;

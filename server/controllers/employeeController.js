@@ -1,109 +1,200 @@
 import Employee from '../models/Employee.js';
 import User from '../models/User.js';
 import Leave from '../models/Leave.js';
+import Attendance from '../models/Attendance.js';
+import StockRequest from '../models/StockRequest.js';
+import MessSchedule from '../models/Mess.js';
 import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
+import { generateEmployeeId } from '../utils/idGenerator.js';
 
 // @desc    Get all employees
 // @route   GET /api/admin/employees
 // @access  Private/Admin
 export const getEmployees = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, search = '' } = req.query;
-  
-  const query = {
-    deletedAt: null,
-    $or: [
-      { employeeId: { $regex: search, $options: 'i' } },
-      { department: { $regex: search, $options: 'i' } },
-      { position: { $regex: search, $options: 'i' } }
-    ]
-  };
+  try {
+    // Validate and parse pagination parameters
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 100);
 
-  const employees = await Employee.find(query)
-    .populate('user', 'name email phone')
-    .limit(limit * 1)
-    .skip((page - 1) * limit)
-    .sort({ createdAt: -1 })
-    .lean()
-    .exec();
+    // Destructure query parameters with defaults
+    const {
+      search = '',
+      department,
+      status
+    } = req.query;
 
-  const count = await Employee.countDocuments(query);
+    // Build safe search query
+    const searchQuery = search.trim();
+    const searchConditions = searchQuery ? [
+      { employeeId: { $regex: searchQuery, $options: 'i' } },
+      { 'user.name': { $regex: searchQuery, $options: 'i' } },
+      { 'user.email': { $regex: searchQuery, $options: 'i' } },
+      { 'user.phone': { $regex: searchQuery, $options: 'i' } }
+    ] : [];
 
-  res.json({
-    employees,
-    totalPages: Math.ceil(count / limit),
-    currentPage: Number(page)
-  });
+    const query = {
+      deletedAt: null,
+      ...(searchQuery && { $or: searchConditions }),
+      ...(department && { department: department.trim() }),
+      ...(status && { status: status.trim() })
+    };
+
+    const [employees, count] = await Promise.all([
+      Employee.find(query)
+        .populate({
+          path: 'user',
+          select: 'name email phone',
+          options: { allowNotFound: true }
+        })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+      Employee.countDocuments(query)
+    ]);
+
+    res.json({
+      success: true,
+      data: employees,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+      totalRecords: count
+    });
+  } catch (error) {
+    console.error('Error in getEmployees:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch employees',
+      details: error.message
+    });
+  }
 });
 
-// @desc    Register a new employee
+// @desc    Register a new employee (aligned with registration form)
 // @route   POST /api/admin/employees/register
 // @access  Private/Admin
 export const registerEmployee = asyncHandler(async (req, res) => {
+  // Required fields from registration form
+  const requiredFields = [
+    'firstName', 'lastName', 'email', 'phoneNumber', 'password',
+    'age', 'gender', 'address',
+    'department', 'position', 'shift',
+    'emergencyContact.name', 'emergencyContact.phone',
+    'employeeId', 'joinDate'
+  ];
+
+  const missingFields = requiredFields.filter(field => !req.body[field]);
+  if (missingFields.length > 0) {
+    res.status(400);
+    throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+  }
+
   const {
-    name,
+    firstName,
+    lastName,
     email,
-    phone,
+    phoneNumber,
     password,
-    employeeId,
+    age,
+    gender,
+    address,
     department,
     position,
-    salary,
-    joiningDate,
+    shift,
     emergencyContact,
-    bankDetails
+    employeeId,
+    joinDate
   } = req.body;
+
+  // Validate email format
+  const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+  if (!emailRegex.test(email)) {
+    res.status(400);
+    throw new Error('Please provide a valid email address');
+  }
 
   // Check if user exists
   const userExists = await User.findOne({ email });
   if (userExists) {
     res.status(400);
-    throw new Error('User already exists');
+    throw new Error('Employee with this email already exists');
   }
 
-  // Check if employee ID exists
-  const employeeIdExists = await Employee.findOne({ employeeId });
-  if (employeeIdExists) {
+  // Validate gender
+  if (!['Male', 'Female', 'Other'].includes(gender)) {
     res.status(400);
-    throw new Error('Employee ID already exists');
+    throw new Error('Invalid gender value');
   }
 
-  // Create user
-  const user = await User.create({
-    name,
-    email,
-    phone,
-    password,
-    role: 'employee'
-  });
+  // Start transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Create employee
-  const employee = await Employee.create({
-    user: user._id,
-    employeeId,
-    department,
-    position,
-    salary,
-    joiningDate,
-    emergencyContact,
-    bankDetails
-  });
+  try {
+    // Create user
+    const [user] = await User.create([{
+      name,
+      email,
+      phone: phoneNumber,
+      password,
+      role: 'employee',
+      caaNumber,
+      hatcheryName,
+      isVerified: false
+    }], { session });
 
-  const createdEmployee = await Employee.findById(employee._id)
-    .populate('user', 'name email phone')
-    .lean()
-    .exec();
+    // Create employee with fields from registration form
+    const [employee] = await Employee.create([{
+      user: user._id,
+      employeeId: generateEmployeeId(),
+      department,
+      position,
+      salary: Number(salary),
+      joiningDate: new Date(),
+      emergencyContact: {
+        name: emergencyContactName,
+        relation: emergencyContactRelation,
+        phone: emergencyContactPhone
+      },
+      address,
+      age: Number(age),
+      gender,
+      shiftTimings,
+      status: 'active'
+    }], { session });
 
-  res.status(201).json(createdEmployee);
+    await session.commitTransaction();
+    session.endSession();
+
+    const createdEmployee = await Employee.findById(employee._id)
+      .populate('user', 'name email phone')
+      .lean();
+
+    res.status(201).json({
+      success: true,
+      message: 'Employee registered successfully',
+      data: createdEmployee
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Employee registration failed',
+      details: error.keyValue ? `Duplicate value for ${Object.keys(error.keyValue).join(', ')}` : null
+    });
+  }
 });
 
-// @desc    Update employee
+// @desc    Update employee (only fields from registration form)
 // @route   PUT /api/admin/employees/:id
 // @access  Private/Admin
 export const updateEmployee = asyncHandler(async (req, res) => {
   const employee = await Employee.findById(req.params.id)
-    .populate('user', 'name email phone')
+    .populate('user')
     .exec();
-  
+
   if (!employee || employee.deletedAt) {
     res.status(404);
     throw new Error('Employee not found');
@@ -112,41 +203,56 @@ export const updateEmployee = asyncHandler(async (req, res) => {
   const {
     name,
     email,
-    phone,
+    phoneNumber,
+    age,
+    gender,
+    address,
+    salary,
     department,
     position,
-    salary,
-    status,
-    emergencyContact,
-    bankDetails
+    shiftTimings,
+    emergencyContactName,
+    emergencyContactPhone,
+    emergencyContactRelation,
+    status
   } = req.body;
 
-  // Update user details
-  employee.user.name = name || employee.user.name;
-  employee.user.email = email || employee.user.email;
-  employee.user.phone = phone || employee.user.phone;
+  // Update user details if provided
+  if (name) employee.user.name = name;
+  if (email) employee.user.email = email;
+  if (phoneNumber) employee.user.phone = phoneNumber;
   await employee.user.save();
 
   // Update employee details
-  employee.department = department || employee.department;
-  employee.position = position || employee.position;
-  employee.salary = salary || employee.salary;
-  employee.status = status || employee.status;
-  employee.emergencyContact = emergencyContact || employee.emergencyContact;
-  employee.bankDetails = bankDetails || employee.bankDetails;
+  if (department) employee.department = department;
+  if (position) employee.position = position;
+  if (salary) employee.salary = Number(salary);
+  if (status) employee.status = status;
+  if (address) employee.address = address;
+  if (age) employee.age = Number(age);
+  if (gender) employee.gender = gender;
+  if (shiftTimings) employee.shiftTimings = shiftTimings;
+
+  // Update emergency contact details
+  if (emergencyContactName) employee.emergencyContact.name = emergencyContactName;
+  if (emergencyContactPhone) employee.emergencyContact.phone = emergencyContactPhone;
+  if (emergencyContactRelation) employee.emergencyContact.relation = emergencyContactRelation;
 
   const updatedEmployee = await employee.save();
 
-  res.json(updatedEmployee);
+  res.json({
+    success: true,
+    data: updatedEmployee
+  });
 });
 
-// @desc    Delete employee
+// @desc    Delete employee (soft delete)
 // @route   DELETE /api/admin/employees/:id
 // @access  Private/Admin
 export const deleteEmployee = asyncHandler(async (req, res) => {
   const { reason } = req.body;
   const employee = await Employee.findById(req.params.id);
-  
+
   if (!employee || employee.deletedAt) {
     res.status(404);
     throw new Error('Employee not found');
@@ -157,9 +263,19 @@ export const deleteEmployee = asyncHandler(async (req, res) => {
     throw new Error('Please provide a reason for deletion');
   }
 
-  await employee.softDelete(reason);
+  // Soft delete employee
+  employee.deletedAt = new Date();
+  employee.status = 'inactive';
+  employee.deletionReason = reason;
+  await employee.save();
 
-  res.json({ message: 'Employee deactivated successfully' });
+  // Also deactivate the associated user account
+  await User.findByIdAndUpdate(employee.user, { isActive: false });
+
+  res.json({
+    success: true,
+    message: 'Employee deactivated successfully'
+  });
 });
 
 // @desc    Get employee profile
@@ -169,98 +285,31 @@ export const getEmployeeProfile = asyncHandler(async (req, res) => {
   const employee = await Employee.findOne({ user: req.user._id })
     .populate('user', 'name email phone')
     .select('-deletedAt -deletionReason')
-    .lean()
-    .exec();
+    .lean();
 
   if (!employee) {
     res.status(404);
     throw new Error('Employee profile not found');
   }
 
-  res.json(employee);
-});
-
-// @desc    Get dashboard stats for employee
-// @route   GET /api/employee/dashboard
-// @access  Private/Employee
-export const getDashboardStats = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id })
-    .populate('user', 'name email phone')
-    .lean()
-    .exec();
-  
-  if (!employee) {
-    res.status(404);
-    throw new Error('Employee not found');
-  }
-
-  // Get leave stats
-  const leaves = await Leave.find({ employee: employee._id });
-  const approvedLeaves = leaves.filter(leave => leave.status === 'approved').length;
-  
-  // Get attendance stats (you'll need to implement your attendance logic)
-  const totalWorkingDays = 22; // Example value
-  const presentDays = 18; // Example value
-  const attendancePercentage = Math.round((presentDays / totalWorkingDays) * 100);
-
   res.json({
-    employee: {
-      name: employee.user.name,
-      position: employee.position,
-      department: employee.department
-    },
-    stats: {
-      leaves: {
-        total: leaves.length,
-        approved: approvedLeaves,
-        pending: leaves.filter(leave => leave.status === 'pending').length,
-        rejected: leaves.filter(leave => leave.status === 'rejected').length
-      },
-      attendance: {
-        percentage: attendancePercentage,
-        present: presentDays,
-        absent: totalWorkingDays - presentDays
-      },
-      upcomingSchedule: [] // Add upcoming schedule logic
-    }
+    success: true,
+    data: employee
   });
-});
-
-// @desc    Get employee attendance
-// @route   GET /api/employee/attendance
-// @access  Private/Employee
-export const getMyAttendance = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id })
-    .populate('user', 'name email phone')
-    .lean()
-    .exec();
-  
-  if (!employee) {
-    res.status(404);
-    throw new Error('Employee not found');
-  }
-
-  // Implement your attendance fetching logic here
-  // This is just example data
-  const attendance = [
-    { date: '2023-06-01', status: 'present', checkIn: '09:00', checkOut: '17:00' },
-    { date: '2023-06-02', status: 'present', checkIn: '08:45', checkOut: '17:15' },
-    // Add more attendance records
-  ];
-
-  res.json(attendance);
 });
 
 // @desc    Apply for leave
 // @route   POST /api/employee/leaves
 // @access  Private/Employee
 export const applyForLeave = asyncHandler(async (req, res) => {
-  const { startDate, endDate, reason, leaveType } = req.body;
-  const employee = await Employee.findOne({ user: req.user._id })
-    .populate('user', 'name email phone')
-    .lean()
-    .exec();
+  const { startDate, endDate, reason, type } = req.body;
 
+  if (!startDate || !endDate || !reason || !type) {
+    res.status(400);
+    throw new Error('Please provide all required fields');
+  }
+
+  const employee = await Employee.findOne({ user: req.user._id });
   if (!employee) {
     res.status(404);
     throw new Error('Employee not found');
@@ -271,22 +320,22 @@ export const applyForLeave = asyncHandler(async (req, res) => {
     startDate,
     endDate,
     reason,
-    leaveType,
+    type,
     status: 'pending'
   });
 
-  res.status(201).json(leave);
+  res.status(201).json({
+    success: true,
+    message: 'Leave application submitted successfully',
+    data: leave
+  });
 });
 
-// @desc    Get employee leaves
+// @desc    Get employee's leaves
 // @route   GET /api/employee/leaves
 // @access  Private/Employee
 export const getMyLeaves = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id })
-    .populate('user', 'name email phone')
-    .lean()
-    .exec();
-  
+  const employee = await Employee.findOne({ user: req.user._id });
   if (!employee) {
     res.status(404);
     throw new Error('Employee not found');
@@ -295,86 +344,123 @@ export const getMyLeaves = asyncHandler(async (req, res) => {
   const leaves = await Leave.find({ employee: employee._id })
     .sort({ createdAt: -1 });
 
-  res.json(leaves);
+  res.json({
+    success: true,
+    data: leaves
+  });
 });
 
-// @desc    Get salary details
-// @route   GET /api/employee/salary
+// @desc    Get employee's attendance
+// @route   GET /api/employee/attendance
 // @access  Private/Employee
-export const getSalaryDetails = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id })
-    .populate('user', 'name email phone')
-    .lean()
-    .exec();
-  
+export const getMyAttendance = asyncHandler(async (req, res) => {
+  const employee = await Employee.findOne({ user: req.user._id });
   if (!employee) {
     res.status(404);
     throw new Error('Employee not found');
   }
 
-  // Implement your salary details logic here
-  // This is just example data
-  const salaryDetails = {
-    basicSalary: employee.salary * 0.6,
-    hra: employee.salary * 0.3,
-    specialAllowance: employee.salary * 0.1,
-    deductions: {
-      tax: employee.salary * 0.1,
-      pf: employee.salary * 0.12
-    },
-    netSalary: employee.salary * 0.78, // After deductions
-    bankDetails: employee.bankDetails,
-    paymentHistory: [] // Add payment history logic
-  };
+  const attendance = await Attendance.find({ employee: employee._id })
+    .sort({ date: -1 });
 
-  res.json(salaryDetails);
+  res.json({
+    success: true,
+    data: attendance
+  });
+});
+
+// @desc    Get employee's salary details
+// @route   GET /api/employee/salary
+// @access  Private/Employee
+export const getSalaryDetails = asyncHandler(async (req, res) => {
+  const employee = await Employee.findOne({ user: req.user._id })
+    .populate('salary');
+
+  if (!employee) {
+    res.status(404);
+    throw new Error('Employee not found');
+  }
+
+  res.json({
+    success: true,
+    data: employee.salary
+  });
 });
 
 // @desc    Create stock request
 // @route   POST /api/employee/stock-requests
 // @access  Private/Employee
 export const createStockRequest = asyncHandler(async (req, res) => {
-  const { itemName, quantity, urgency, notes } = req.body;
-  const employee = await Employee.findOne({ user: req.user._id })
-    .populate('user', 'name email phone')
-    .lean()
-    .exec();
+  const { items, urgency, notes } = req.body;
 
+  if (!items || !items.length) {
+    res.status(400);
+    throw new Error('Please provide items for the stock request');
+  }
+
+  const employee = await Employee.findOne({ user: req.user._id });
   if (!employee) {
     res.status(404);
     throw new Error('Employee not found');
   }
 
-  // Implement your stock request logic here
-  // This is just example response
-  const stockRequest = {
-    id: 'SR-' + Math.floor(Math.random() * 10000),
-    itemName,
-    quantity,
+  const stockRequest = await StockRequest.create({
+    employee: employee._id,
+    items,
     urgency,
     notes,
-    status: 'pending',
-    requestedBy: employee.user.name,
-    requestedAt: new Date()
-  };
+    status: 'pending'
+  });
 
-  res.status(201).json(stockRequest);
+  res.status(201).json({
+    success: true,
+    message: 'Stock request created successfully',
+    data: stockRequest
+  });
 });
 
 // @desc    Get mess schedule
 // @route   GET /api/employee/mess-schedule
 // @access  Private/Employee
 export const getMessSchedule = asyncHandler(async (req, res) => {
-  // Implement your mess schedule logic here
-  // This is just example data
-  const messSchedule = {
-    currentWeek: [
-      { day: 'Monday', menu: 'Rice, Dal, Vegetable Curry, Salad' },
-      { day: 'Tuesday', menu: 'Roti, Paneer Curry, Rice, Salad' },
-      // Add more days
-    ],
-    specialDays: [] // Add special days logic
+  const schedule = await MessSchedule.find()
+    .sort({ date: 1 })
+    .limit(7);
+
+  res.json({
+    success: true,
+    data: schedule
+  });
+});
+
+// @desc    Get employee dashboard stats
+// @route   GET /api/employee/dashboard
+// @access  Private/Employee
+export const getDashboardStats = asyncHandler(async (req, res) => {
+  const employee = await Employee.findOne({ user: req.user._id });
+  if (!employee) {
+    res.status(404);
+    throw new Error('Employee not found');
+  }
+
+  // Get recent attendance records
+  const recentAttendance = await Attendance.find({ employee: employee._id })
+    .sort({ date: -1 })
+    .limit(7);
+
+  // Get leave statistics
+  const leaves = await Leave.find({ employee: employee._id });
+  const leaveStats = {
+    approved: leaves.filter(l => l.status === 'approved').length,
+    pending: leaves.filter(l => l.status === 'pending').length,
+    rejected: leaves.filter(l => l.status === 'rejected').length
   };
 
-  res.json(messSchedule);
+  res.json({
+    success: true,
+    data: {
+      recentAttendance,
+      leaveStats
+    }
+  });
 });

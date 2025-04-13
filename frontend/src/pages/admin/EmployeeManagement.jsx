@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEmployees, deleteEmployee } from '../../api/adminApi';
+import employeeApi from '../../api/employeeAPI'; // corrected import
 import EmployeeTable from '../../components/admin/EmployeeTable';
 import EmployeeCard from '../../components/admin/EmployeeCard';
 import EmployeeFormModal from '../../components/admin/EmployeeFormModal';
+import EmployeeRegistration from './EmployeeRegistration'; // corrected path
 import { toast } from 'react-toastify';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const EmployeeManagement = () => {
   const navigate = useNavigate();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showRegistration, setShowRegistration] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,8 +21,8 @@ const EmployeeManagement = () => {
     const fetchEmployees = async () => {
       try {
         setIsLoading(true);
-        const data = await getEmployees();
-        setEmployees(Array.isArray(data) ? data : []);
+        const res = await employeeApi.getEmployees();
+        setEmployees(res.data || []);
         setError(null);
       } catch (err) {
         setError(err);
@@ -39,12 +41,12 @@ const EmployeeManagement = () => {
     if (!reason) return;
 
     try {
-      await deleteEmployee({ id, reason });
-      const updatedEmployees = await getEmployees();
-      setEmployees(Array.isArray(updatedEmployees) ? updatedEmployees : []);
+      await employeeApi.deleteEmployee(id);
+      const updated = await employeeApi.getEmployees();
+      setEmployees(updated.data || []);
       toast.success('Employee deactivated successfully');
-      
-      if (selectedEmployee?.id === id) {
+
+      if (selectedEmployee?._id === id) {
         setSelectedEmployee(null);
       }
     } catch (error) {
@@ -54,14 +56,13 @@ const EmployeeManagement = () => {
 
   const handleEmployeeUpdate = (updatedEmployee) => {
     if (selectedEmployee) {
-      setEmployees(employees.map(emp => 
-        emp.id === updatedEmployee.id ? updatedEmployee : emp
+      setEmployees(employees.map(emp =>
+        emp._id === updatedEmployee._id ? updatedEmployee : emp
       ));
-      setSelectedEmployee(updatedEmployee); // Update the displayed employee
+      setSelectedEmployee(updatedEmployee);
     } else {
-      const newEmployee = { ...updatedEmployee, id: Date.now() };
-      setEmployees([...employees, newEmployee]);
-      setSelectedEmployee(newEmployee); // Show the newly added employee
+      setEmployees([...employees, updatedEmployee]);
+      setSelectedEmployee(updatedEmployee);
     }
   };
 
@@ -75,11 +76,8 @@ const EmployeeManagement = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Employee Management</h1>
           <button
-            onClick={() => {
-              setSelectedEmployee(null);
-              setIsFormOpen(true);
-            }}
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            onClick={() => setShowRegistration(true)}
           >
             Add Employee
           </button>
@@ -87,7 +85,7 @@ const EmployeeManagement = () => {
 
         {/* Content Layout */}
         <div className="flex gap-5">
-          {/* Employee Table Section - Wider to accommodate more columns */}
+          {/* Employee Table Section */}
           <div className="w-3/4">
             <EmployeeTable
               employees={employees}
@@ -95,10 +93,8 @@ const EmployeeManagement = () => {
                 setSelectedEmployee(employee);
                 setIsFormOpen(true);
               }}
-              onDelete={handleDelete}
-              onSelect={(employee) => {
-                setSelectedEmployee(employee);
-              }}
+              onDelete={(employee) => handleDelete(employee._id)}
+              onSelect={(employee) => setSelectedEmployee(employee)}
             />
           </div>
 
@@ -119,12 +115,19 @@ const EmployeeManagement = () => {
         {/* Employee Form Modal */}
         <EmployeeFormModal
           isOpen={isFormOpen}
-          onClose={() => {
-            setIsFormOpen(false);
-          }}
+          onClose={() => setIsFormOpen(false)}
           employee={selectedEmployee}
           onSuccess={handleEmployeeUpdate}
         />
+
+        {/* Registration Modal */}
+        {showRegistration && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <EmployeeRegistration
+              onClose={() => setShowRegistration(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

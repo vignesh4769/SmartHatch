@@ -5,6 +5,7 @@ import AttendanceTable from "../../components/admin/AttendanceTable";
 
 const AttendanceManagement = () => {
   const [attendanceData, setAttendanceData] = useState([]);
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -12,7 +13,12 @@ const AttendanceManagement = () => {
     const fetchAttendanceData = async () => {
       try {
         const response = await axios.get("/api/admin/attendance");
-        setAttendanceData(response.data);
+        if (response.data && Array.isArray(response.data)) {
+          setAttendanceData(response.data);
+        } else {
+          setAttendanceData([]);
+          setError("Invalid attendance data format");
+        }
       } catch (error) {
         console.error("Error fetching attendance data:", error);
       } finally {
@@ -37,6 +43,7 @@ const AttendanceManagement = () => {
   };
 
   if (loading) return <div>Loading attendance data...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
 
   return (
     <div className="p-6">

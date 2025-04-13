@@ -1,5 +1,29 @@
 import mongoose from 'mongoose';
 
+const stockRequestSchema = new mongoose.Schema({
+  requestedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1
+  },
+  urgency: {
+    type: String,
+    enum: ['low', 'normal', 'high', 'critical'],
+    default: 'normal'
+  },
+  notes: String,
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'fulfilled'],
+    default: 'pending'
+  }
+}, { timestamps: true });
+
 const inventorySchema = new mongoose.Schema({
   hatchery: {
     type: mongoose.Schema.Types.ObjectId,
@@ -8,12 +32,14 @@ const inventorySchema = new mongoose.Schema({
   },
   itemName: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   category: {
     type: String,
     required: true,
-    enum: ['feed', 'equipment', 'medicine', 'chemicals', 'other']
+    enum: ['feed', 'equipment', 'medicine', 'chemicals', 'other'],
+    default: 'other'
   },
   quantity: {
     type: Number,
@@ -22,17 +48,21 @@ const inventorySchema = new mongoose.Schema({
   },
   unit: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
+    default: 'units'
   },
   unitPrice: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
+    default: 0
   },
   reorderPoint: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
+    default: 5
   },
   supplier: {
     name: String,
@@ -42,9 +72,14 @@ const inventorySchema = new mongoose.Schema({
   },
   location: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
+    default: 'Main Storage'
   },
-  description: String,
+  description: {
+    type: String,
+    trim: true
+  },
   lastRestocked: {
     type: Date,
     default: Date.now
@@ -53,7 +88,8 @@ const inventorySchema = new mongoose.Schema({
     type: String,
     enum: ['in-stock', 'low-stock', 'out-of-stock'],
     default: 'in-stock'
-  }
+  },
+  stockRequests: [stockRequestSchema]
 }, { timestamps: true });
 
 // Pre-save middleware to update status based on quantity and reorderPoint
@@ -64,6 +100,22 @@ inventorySchema.pre('save', function(next) {
     this.status = 'low-stock';
   } else {
     this.status = 'in-stock';
+  }
+  
+  // Update lastRestocked if quantity increased
+  if (this.isModified('quantity') && this.quantity > this._originalQuantity) {
+    this.lastRestocked = Date.now();
+  }
+  
+  next();
+});
+
+// Store original quantity for comparison
+inventorySchema.pre('save', function(next) {
+  if (this.isNew) {
+    this._originalQuantity = this.quantity;
+  } else {
+    this._originalQuantity = this._originalQuantity || this.quantity;
   }
   next();
 });

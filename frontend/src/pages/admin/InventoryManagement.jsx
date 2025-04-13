@@ -1,47 +1,124 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import inventoryApi from "../api/inventoryApi";
+import { useAuth } from "../context/AuthContext";
 
 function InventoryManagement() {
-  const [stock, setStock] = useState([
-    { id: 1, name: "Feed", quantity: 20, threshold: 10 },
-    { id: 2, name: "Medicine", quantity: 5, threshold: 10 },
-    { id: 3, name: "Equipment", quantity: 15, threshold: 5 },
-  ]);
+  const { user } = useAuth();
+  const [inventory, setInventory] = useState([]);
+  const [stockRequests, setStockRequests] = useState([]);
+  const [newItem, setNewItem] = useState({
+    name: "",
+    category: "other",
+    quantity: 0,
+    unit: "units",
+    unitPrice: 0,
+    reorderPoint: 5,
+    location: "Main Storage"
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [newItem, setNewItem] = useState({ name: "", quantity: "" });
-  const [restockRequests, setRestockRequests] = useState([]);
+  // Fetch inventory items
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        const data = await inventoryApi.getInventoryItems();
+        setInventory(data.data);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    const fetchStockRequests = async () => {
+      try {
+        const data = await inventoryApi.getStockRequests();
+        setStockRequests(data.data);
+      } catch (err) {
+        console.error("Failed to fetch stock requests:", err);
+      }
+    };
+
+    fetchInventory();
+    fetchStockRequests();
+  }, []);
 
   // Handle input change
   const handleChange = (e) => {
     setNewItem({ ...newItem, [e.target.name]: e.target.value });
   };
 
-  // Add new stock item
-  const addStock = () => {
-    if (newItem.name && newItem.quantity) {
-      setStock([...stock, { ...newItem, id: stock.length + 1, threshold: 5 }]);
-      setNewItem({ name: "", quantity: "" });
+  // Add new inventory item
+  const addInventoryItem = async () => {
+    try {
+      const addedItem = await inventoryApi.addInventoryItem(newItem);
+      setInventory([...inventory, addedItem.data]);
+      setNewItem({
+        name: "",
+        category: "other",
+        quantity: 0,
+        unit: "units",
+        unitPrice: 0,
+        reorderPoint: 5,
+        location: "Main Storage"
+      });
+    } catch (err) {
+      setError(err.message);
     }
   };
 
-  // Delete stock item
-  const deleteStock = (id) => {
-    setStock(stock.filter((item) => item.id !== id));
+  // Update inventory item quantity
+  const updateQuantity = async (id, newQuantity) => {
+    try {
+      const updatedItem = await inventoryApi.updateInventoryItem(id, { quantity: newQuantity });
+      setInventory(inventory.map(item => 
+        item._id === id ? updatedItem.data : item
+      ));
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
-  // Increment quantity
-  const incrementQuantity = (id) => {
-    setStock(stock.map(item => item.id === id ? { ...item, quantity: item.quantity + 1 } : item));
-  };
-
-  // Decrement quantity
-  const decrementQuantity = (id) => {
-    setStock(stock.map(item => item.id === id && item.quantity > 0 ? { ...item, quantity: item.quantity - 1 } : item));
+  // Delete inventory item
+  const deleteInventoryItem = async (id) => {
+    try {
+      await inventoryApi.deleteInventoryItem(id);
+      setInventory(inventory.filter(item => item._id !== id));
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   // Request restock
-  const requestRestock = (item) => {
-    setRestockRequests([...restockRequests, item]);
+  const requestRestock = async (itemId, quantity) => {
+    try {
+      const request = await inventoryApi.createStockRequest(
+        itemId,
+        quantity,
+        'normal',
+        'Automatic restock request'
+      );
+      setStockRequests([...stockRequests, request.data]);
+    } catch (err) {
+      setError(err.message);
+    }
   };
+
+  // Update stock request status
+  const updateRequestStatus = async (requestId, status) => {
+    try {
+      const updatedRequest = await inventoryApi.updateStockRequest(requestId, status);
+      setStockRequests(stockRequests.map(req => 
+        req._id === requestId ? updatedRequest.data : req
+      ));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  if (loading) return <div className="p-6">Loading inventory...</div>;
+  if (error) return <div className="p-6 text-error">Error: {error}</div>;
 
   return (
     <div className="p-6 space-y-6 ml-48">
@@ -57,24 +134,51 @@ function InventoryManagement() {
           <thead>
             <tr>
               <th>Name</th>
+              <th>Category</th>
               <th>Quantity</th>
+              <th>Unit</th>
+              <th>Status</th>
               <th>Actions</th>
               <th>Restock</th>
               <th>Delete</th>
             </tr>
           </thead>
           <tbody>
-            {stock.map((item) => (
-              <tr key={item.id} className={item.quantity <= item.threshold ? "bg-red-100" : ""}>
-                <td>{item.name}</td>
-                <td>{item.quantity}</td>
+            {inventory.map((item) => (
+              <tr key={item._id} className={item.status === 'low-stock' ? 'bg-yellow-100' : item.status === 'out-of-stock' ? 'bg-red-100' : ''}>
+                <td>{item.itemName}</td>
+                <td>{item.category}</td>
+                <td>{item.quantity} {item.unit}</td>
+                <td>{item.unit}</td>
                 <td>
-                  <button className="btn btn-sm btn-secondary" onClick={() => decrementQuantity(item.id)}>-</button>
-                  <button className="btn btn-sm btn-secondary ml-2" onClick={() => incrementQuantity(item.id)}>+</button>
+                  <span className={`badge ${
+                    item.status === 'in-stock' ? 'badge-success' : 
+                    item.status === 'low-stock' ? 'badge-warning' : 'badge-error'
+                  }`}>
+                    {item.status}
+                  </span>
                 </td>
                 <td>
-                  {item.quantity <= item.threshold ? (
-                    <button className="btn btn-warning btn-sm" onClick={() => requestRestock(item)}>
+                  <button 
+                    className="btn btn-sm btn-secondary" 
+                    onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                    disabled={item.quantity <= 0}
+                  >
+                    -
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-secondary ml-2" 
+                    onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                  >
+                    +
+                  </button>
+                </td>
+                <td>
+                  {item.quantity <= item.reorderPoint ? (
+                    <button 
+                      className="btn btn-warning btn-sm" 
+                      onClick={() => requestRestock(item._id, item.reorderPoint * 2)}
+                    >
                       Request Restock
                     </button>
                   ) : (
@@ -82,7 +186,10 @@ function InventoryManagement() {
                   )}
                 </td>
                 <td>
-                  <button className="btn btn-error btn-sm" onClick={() => deleteStock(item.id)}>
+                  <button 
+                    className="btn btn-error btn-sm" 
+                    onClick={() => deleteInventoryItem(item._id)}
+                  >
                     Delete
                   </button>
                 </td>
@@ -92,9 +199,9 @@ function InventoryManagement() {
         </table>
       </div>
 
-      {/* Add New Stock Form */}
+      {/* Add New Inventory Item Form */}
       <div className="bg-base-100 p-4 rounded-lg shadow space-y-3">
-        <h3 className="text-lg font-semibold">Add New Stock</h3>
+        <h3 className="text-lg font-semibold">Add New Inventory Item</h3>
         <input
           type="text"
           name="name"
@@ -102,36 +209,148 @@ function InventoryManagement() {
           className="input input-bordered w-full"
           value={newItem.name}
           onChange={handleChange}
+          required
         />
+        <select
+          name="category"
+          className="select select-bordered w-full"
+          value={newItem.category}
+          onChange={handleChange}
+        >
+          <option value="feed">Feed</option>
+          <option value="equipment">Equipment</option>
+          <option value="medicine">Medicine</option>
+          <option value="chemicals">Chemicals</option>
+          <option value="other">Other</option>
+        </select>
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            type="number"
+            name="quantity"
+            placeholder="Quantity"
+            className="input input-bordered"
+            value={newItem.quantity}
+            onChange={handleChange}
+            min="0"
+            required
+          />
+          <input
+            type="text"
+            name="unit"
+            placeholder="Unit (kg, pieces, etc.)"
+            className="input input-bordered"
+            value={newItem.unit}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            type="number"
+            name="unitPrice"
+            placeholder="Unit Price"
+            className="input input-bordered"
+            value={newItem.unitPrice}
+            onChange={handleChange}
+            min="0"
+            step="0.01"
+          />
+          <input
+            type="number"
+            name="reorderPoint"
+            placeholder="Reorder Point"
+            className="input input-bordered"
+            value={newItem.reorderPoint}
+            onChange={handleChange}
+            min="0"
+            required
+          />
+        </div>
         <input
-          type="number"
-          name="quantity"
-          placeholder="Quantity"
+          type="text"
+          name="location"
+          placeholder="Location"
           className="input input-bordered w-full"
-          value={newItem.quantity}
+          value={newItem.location}
           onChange={handleChange}
         />
-        <button className="btn btn-primary w-full" onClick={addStock}>
-          Add Stock
+        <button 
+          className="btn btn-primary w-full" 
+          onClick={addInventoryItem}
+          disabled={!newItem.name || newItem.quantity === ''}
+        >
+          Add Inventory Item
         </button>
       </div>
 
-      {/* Restock Requests */}
-      {restockRequests.length > 0 && (
+      {/* Stock Requests Section */}
+      {user?.role === 'admin' && (
         <div className="bg-base-100 p-4 rounded-lg shadow">
-          <h3 className="text-lg font-semibold">Inventory Restock Requests</h3>
-          <ul className="list-disc pl-5">
-            {restockRequests.map((item, index) => (
-              <li key={index} className="text-red-600">{item.name} - Requested</li>
-            ))}
-          </ul>
+          <h3 className="text-lg font-semibold">Stock Requests</h3>
+          {stockRequests.length > 0 ? (
+            <div className="overflow-x-auto mt-4">
+              <table className="table w-full">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Requested By</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stockRequests.map((request) => (
+                    <tr key={request._id}>
+                      <td>{request.itemName}</td>
+                      <td>{request.quantity}</td>
+                      <td>{request.requestedBy?.name || 'System'}</td>
+                      <td>
+                        <span className={`badge ${
+                          request.status === 'pending' ? 'badge-warning' : 
+                          request.status === 'approved' ? 'badge-success' : 'badge-error'
+                        }`}>
+                          {request.status}
+                        </span>
+                      </td>
+                      <td>
+                        {request.status === 'pending' && (
+                          <div className="space-x-2">
+                            <button 
+                              className="btn btn-success btn-sm"
+                              onClick={() => updateRequestStatus(request._id, 'approved')}
+                            >
+                              Approve
+                            </button>
+                            <button 
+                              className="btn btn-error btn-sm"
+                              onClick={() => updateRequestStatus(request._id, 'rejected')}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>No stock requests at this time.</p>
+          )}
         </div>
       )}
 
       {/* Low Inventory Alerts */}
-      {stock.some((item) => item.quantity <= item.threshold) && (
-        <div className="alert alert-error">
-          <span>⚠ Low Inventory Alert! Some items need restocking.</span>
+      {inventory.some(item => item.status === 'low-stock' || item.status === 'out-of-stock') && (
+        <div className={`alert ${
+          inventory.some(item => item.status === 'out-of-stock') ? 'alert-error' : 'alert-warning'
+        }`}>
+          <span>
+            ⚠ Inventory Alert! {inventory.filter(item => item.status === 'out-of-stock').length} items out of stock and 
+            {inventory.filter(item => item.status === 'low-stock').length} items low on stock.
+          </span>
         </div>
       )}
     </div>

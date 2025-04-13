@@ -1,19 +1,23 @@
 import React from "react";
 
-function InputField({ label, type, id, value, onChange }) {
+const InputField = React.forwardRef(({ label, type = "text", id, value, onChange }, ref) => {
   return (
-    <div className="form-group">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
+    <div className="form-group mb-4">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
       <input
+        ref={ref}
         type={type}
         id={id}
-        className="input input-bordered w-full mt-1 p-2"
+        name={id}
         value={value}
         onChange={onChange}
+        className="input input-bordered w-full p-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
         required
       />
     </div>
   );
-}
+});
 
 export default InputField;

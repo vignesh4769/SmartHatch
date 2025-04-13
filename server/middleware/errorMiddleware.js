@@ -7,10 +7,23 @@ const notFound = (req, res, next) => {
   const errorHandler = (err, req, res, next) => {
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
     res.status(statusCode);
-    res.json({
-      message: err.message,
-      stack: process.env.NODE_ENV === 'production' ? null : err.stack
+    const errorResponse = {
+      success: false,
+      error: err.message,
+      details: err.details,
+      path: req.originalUrl,
+      method: req.method,
+      timestamp: new Date().toISOString(),
+      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+    };
+
+    console.error('API Error:', {
+      ...errorResponse,
+      userId: req.user?._id,
+      body: req.body
     });
+
+    res.json(errorResponse);
   };
   
   export { notFound, errorHandler };

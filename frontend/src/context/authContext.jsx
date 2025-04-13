@@ -24,7 +24,7 @@ const AuthProvider = ({ children }) => {
         throw new Error('Invalid login response');
       }
 
-      const { token, _id, role, name, hatcheryName, email } = userData;
+      const { token, _id, role, name, hatcheryName, email, caaNumber } = userData;
       
       // Create user object with all necessary data
       const userToStore = {
@@ -33,7 +33,8 @@ const AuthProvider = ({ children }) => {
         name,
         hatcheryName,
         email,
-        token
+        token,
+        caaNumber
       };
       
       // Store user data and update state

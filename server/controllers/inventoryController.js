@@ -1,6 +1,25 @@
 import Inventory from '../models/Inventory.js';
 import asyncHandler from 'express-async-handler';
 
+// @desc    Get all inventory items
+// @route   GET /api/inventory
+// @access  Private
+export const getInventoryItems = asyncHandler(async (req, res) => {
+  const { category, status } = req.query;
+  
+  const query = { hatchery: req.user.hatcheryId };
+  if (category) query.category = category;
+  if (status) query.status = status;
+
+  const inventoryItems = await Inventory.find(query).sort({ itemName: 1 });
+
+  res.json({
+    success: true,
+    count: inventoryItems.length,
+    data: inventoryItems
+  });
+});
+
 // @desc    Add new inventory item
 // @route   POST /api/inventory
 // @access  Private/Admin
@@ -26,37 +45,18 @@ export const addInventoryItem = asyncHandler(async (req, res) => {
     hatchery: req.user.hatcheryId,
     itemName,
     category,
-    quantity,
+    quantity: Number(quantity),
     unit,
-    unitPrice,
-    reorderPoint,
-    supplier,
+    unitPrice: Number(unitPrice),
+    reorderPoint: Number(reorderPoint),
+    supplier: supplier || {},
     location,
-    description
+    description: description || ''
   });
 
   res.status(201).json({
     success: true,
     data: inventoryItem
-  });
-});
-
-// @desc    Get all inventory items
-// @route   GET /api/inventory
-// @access  Private
-export const getInventoryItems = asyncHandler(async (req, res) => {
-  const { category, status } = req.query;
-  
-  const query = { hatchery: req.user.hatcheryId };
-  if (category) query.category = category;
-  if (status) query.status = status;
-
-  const inventoryItems = await Inventory.find(query).sort({ itemName: 1 });
-
-  res.json({
-    success: true,
-    count: inventoryItems.length,
-    data: inventoryItems
   });
 });
 
@@ -74,9 +74,21 @@ export const updateInventoryItem = asyncHandler(async (req, res) => {
     throw new Error('Inventory item not found');
   }
 
+  // Update only provided fields
+  const updates = {};
+  if (req.body.itemName) updates.itemName = req.body.itemName;
+  if (req.body.category) updates.category = req.body.category;
+  if (req.body.quantity !== undefined) updates.quantity = Number(req.body.quantity);
+  if (req.body.unit) updates.unit = req.body.unit;
+  if (req.body.unitPrice !== undefined) updates.unitPrice = Number(req.body.unitPrice);
+  if (req.body.reorderPoint !== undefined) updates.reorderPoint = Number(req.body.reorderPoint);
+  if (req.body.supplier) updates.supplier = req.body.supplier;
+  if (req.body.location) updates.location = req.body.location;
+  if (req.body.description !== undefined) updates.description = req.body.description;
+
   const updatedItem = await Inventory.findByIdAndUpdate(
     req.params.id,
-    req.body,
+    updates,
     { new: true, runValidators: true }
   );
 
@@ -132,17 +144,29 @@ export const createStockRequest = asyncHandler(async (req, res) => {
   inventoryItem.stockRequests = inventoryItem.stockRequests || [];
   inventoryItem.stockRequests.push({
     requestedBy: req.user._id,
-    quantity,
+    quantity: Number(quantity),
     urgency: urgency || 'normal',
-    notes,
+    notes: notes || '',
     status: 'pending'
   });
 
   await inventoryItem.save();
 
+  const newRequest = inventoryItem.stockRequests[inventoryItem.stockRequests.length - 1];
+  
+  // Populate requestedBy field for response
+  const populatedRequest = await Inventory.populate(newRequest, {
+    path: 'requestedBy',
+    select: 'name email'
+  });
+
   res.status(201).json({
     success: true,
-    data: inventoryItem.stockRequests[inventoryItem.stockRequests.length - 1]
+    data: {
+      ...populatedRequest.toObject(),
+      itemName: inventoryItem.itemName,
+      itemId: inventoryItem._id
+    }
   });
 });
 
@@ -209,8 +233,18 @@ export const updateStockRequest = asyncHandler(async (req, res) => {
 
   await inventoryItem.save();
 
+  // Populate requestedBy field for response
+  const populatedRequest = await Inventory.populate(stockRequest, {
+    path: 'requestedBy',
+    select: 'name email'
+  });
+
   res.json({
     success: true,
-    data: stockRequest
+    data: {
+      ...populatedRequest.toObject(),
+      itemName: inventoryItem.itemName,
+      itemId: inventoryItem._id
+    }
   });
 });

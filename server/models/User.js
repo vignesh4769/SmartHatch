@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
   verificationOTPExpires: { type: Date },
   resetPasswordOTP: { type: String },
   resetPasswordOTPExpires: { type: Date },
-  profileImage: { type: String },
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
