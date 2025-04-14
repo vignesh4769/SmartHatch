@@ -1,4 +1,3 @@
-// src/components/admin/RunForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import InputField from '../common/InputField';
@@ -21,14 +20,11 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
       startDate: new Date().toISOString().split('T')[0],
       expectedEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       hatchery: '',
-      financials: {
-        budget: 0
-      },
+      financials: { budget: 0 },
       assignedEmployees: []
     }
   });
 
-  const [employees, setEmployees] = useState([]);
   const [employeeOptions, setEmployeeOptions] = useState([]);
   const [fetchingEmployees, setFetchingEmployees] = useState(false);
 
@@ -37,10 +33,10 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
       setFetchingEmployees(true);
       try {
         const response = await employeeAPI.getEmployees();
-        const hatcheryEmployees = response.employees.filter(
-          emp => !initialData?.hatchery || emp.hatchery === initialData.hatchery
+        const employeesData = response.data || response;
+        const hatcheryEmployees = employeesData.filter(
+          emp => emp.hatchery === (initialData?.hatchery || 'Bhavani Hatchery')
         );
-        setEmployees(hatcheryEmployees);
         setEmployeeOptions(
           hatcheryEmployees.map(emp => ({
             value: emp._id,
@@ -146,10 +142,7 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
         step="0.01"
         {...register('financials.budget', {
           required: 'Budget is required',
-          min: {
-            value: 0,
-            message: 'Budget must be positive'
-          }
+          min: { value: 0, message: 'Budget must be positive' }
         })}
         error={errors.financials?.budget?.message}
       />
@@ -171,7 +164,7 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
               isLoading={fetchingEmployees}
               onChange={selected => handleEmployeeChange(selected || [])}
               value={employeeOptions.filter(option =>
-                field.value.some(assignment => assignment.employee === option.value)
+                field.value?.some(assignment => assignment.employee === option.value)
               )}
               placeholder="Select employees..."
               classNamePrefix="react-select"
@@ -180,7 +173,7 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
                   ...base,
                   borderColor: errors.assignedEmployees ? '#dc2626' : base.borderColor,
                   '&:hover': {
-                    borderColor: errors.assignedEmployees ? '#dc2626' : base['&:hover'].borderColor
+                    borderColor: errors.assignedEmployees ? '#dc2626' : base['&:hover']?.borderColor
                   }
                 })
               }}
@@ -215,6 +208,7 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
                     required: 'Shift is required'
                   })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  defaultValue={assignment.shift || ''}
                 >
                   <option value="">Select shift</option>
                   <option value="morning">Morning</option>
@@ -233,16 +227,14 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
       </div>
 
       <div className="pt-4 flex justify-end">
-      <Button 
-  type="submit" 
-  loading={loading}
-  className="w-full sm:w-auto px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
->
-  {`${initialData ? 'Update Run' : 'Create Run'} Submit`}
-</Button>
-
-</div>
-
+        <Button
+          type="submit"
+          loading={loading}
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+        >
+          {initialData ? 'Update Run' : 'Create Run'}
+        </Button>
+      </div>
     </form>
   );
 };

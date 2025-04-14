@@ -11,45 +11,26 @@ const Signup = React.lazy(() => import("../pages/Auth/SignUp"));
 const ForgotPassword = React.lazy(() => import("../pages/Auth/ForgotPassword"));
 
 // Admin Pages
-const AdminDashboard = React.lazy(() =>
-  import("../pages/admin/AdminDashboard")
-);
-const EmployeeManagement = React.lazy(() =>
-  import("../pages/admin/EmployeeManagement")
-);
+const AdminDashboard = React.lazy(() => import("../pages/admin/AdminDashboard"));
+const EmployeeManagement = React.lazy(() => import("../pages/admin/EmployeeManagement"));
 const RunManagement = React.lazy(() => import("../pages/admin/RunManagement.jsx"));
-const AttendanceManagement = React.lazy(() =>
-  import("../pages/admin/AttendanceManagement")
-);
+const AttendanceManagement = React.lazy(() => import("../pages/admin/AttendanceManagement"));
 const LeaveApproval = React.lazy(() => import("../pages/admin/LeaveApproval"));
-const InventoryManagement = React.lazy(() =>
-  import("../pages/admin/InventoryManagement")
-);
-const FinancialDashboard = React.lazy(() =>
-  import("../pages/admin/FinancialDashboard")
-);
-const MessManagement = React.lazy(() =>
-  import("../pages/admin/MessManagement")
-);
-const EmployeeRegistration = React.lazy(() =>
-  import("../pages/admin/EmployeeRegistration")
-);
+const InventoryManagement = React.lazy(() => import("../pages/admin/InventoryManagement"));
+const FinancialDashboard = React.lazy(() => import("../pages/admin/FinancialDashboard"));
+const MessManagement = React.lazy(() => import("../pages/admin/MessManagement"));
+const EmployeeRegistration = React.lazy(() => import("../pages/admin/EmployeeRegistration"));
+const EmployeeForm = React.lazy(() => import("../pages/employee/EmployeeForm.jsx"));
 const VisitorLog = React.lazy(() => import("../pages/admin/VisitorLog"));
 
 // Employee Pages
-const EmployeeDashboard = React.lazy(() =>
-  import("../pages/employee/EmployeeDashboard")
-);
+const EmployeeDashboard = React.lazy(() => import("../pages/employee/EmployeeDashboard"));
 const MyAttendance = React.lazy(() => import("../pages/employee/MyAttendance"));
 const MyLeaves = React.lazy(() => import("../pages/employee/MyLeaves"));
 const MySalary = React.lazy(() => import("../pages/employee/MySalary"));
-const StockRequests = React.lazy(() =>
-  import("../pages/employee/StockRequests")
-);
+const StockRequests = React.lazy(() => import("../pages/employee/StockRequests"));
 const MessSchedule = React.lazy(() => import("../pages/employee/MessSchedule"));
-const LeaveApplication = React.lazy(() =>
-  import("../pages/employee/LeaveApplication")
-);
+const LeaveApplication = React.lazy(() => import("../pages/employee/LeaveApplication"));
 
 // Shared Pages
 const Profile = React.lazy(() => import("../pages/shared/Profile"));
@@ -93,6 +74,22 @@ const AppRoutes = () => {
             }
           />
           <Route
+            path="/admin/employees/:id/edit"
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <EmployeeForm />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/admin/attendance"
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <AttendanceManagement />
+              </Suspense>
+            }
+          />
+          <Route
             path="/admin/employees/register"
             element={
               <Suspense fallback={<LoadingSpinner />}>
@@ -109,26 +106,10 @@ const AppRoutes = () => {
             }
           />
           <Route
-            path="/admin/attendance"
-            element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <AttendanceManagement />
-              </Suspense>
-            }
-          />
-          <Route
             path="/admin/leaves"
             element={
               <Suspense fallback={<LoadingSpinner />}>
                 <LeaveApproval />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/admin/runs"
-            element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <RunManagement />
               </Suspense>
             }
           />

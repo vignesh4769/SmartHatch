@@ -1,139 +1,140 @@
-import React, { useState } from "react";
-import { FaSignOutAlt } from "react-icons/fa"; // Import the Check-out icon from react-icons
+import { useState } from 'react';
+import { FiUserPlus, FiClock, FiLogOut } from 'react-icons/fi';
 
-const VisitorLog = () => {
-  // State to store the visitors' data
+function Visitors() {
   const [visitors, setVisitors] = useState([
-    { id: 1, name: "Alice", reason: "Delivery", checkIn: "10:00 AM", checkOut: "" },
+    { id: 1, name: 'Alice', reason: 'Delivery', checkIn: '10:00 AM', checkOut: 'N/A' },
+    { id: 2, name: 'Bob', reason: 'Meeting', checkIn: '09:30 AM', checkOut: '11:00 AM' },
+    { id: 3, name: 'Charlie', reason: 'Inspection', checkIn: '11:15 AM', checkOut: 'N/A' },
   ]);
 
-  // State to track form visibility and input data
   const [newVisitor, setNewVisitor] = useState({
-    name: "",
-    reason: "",
-    checkIn: "",
-    checkOut: "",
+    name: '',
+    reason: '',
+    checkIn: '',
   });
 
-  const [isFormVisible, setIsFormVisible] = useState(false);
-
-  // Handle form submission for new visitors
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const currentTimestamp = new Date().toLocaleTimeString();
-    setVisitors([
-      ...visitors,
-      {
-        id: Date.now(), // Unique ID for each visitor
-        name: newVisitor.name,
-        reason: newVisitor.reason,
-        checkIn: currentTimestamp,
-        checkOut: "", // To be updated later
-      },
-    ]);
-    setIsFormVisible(false); // Hide form after submission
-    setNewVisitor({ name: "", reason: "", checkIn: "", checkOut: "" }); // Reset the form fields
+  const formatTime = (date) => {
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    return `${hours}:${minutes} ${ampm}`;
   };
 
-  // Handle check-out for a visitor
-  const handleCheckout = (visitorId) => {
-    const updatedVisitors = visitors.map((visitor) =>
-      visitor.id === visitorId
-        ? { ...visitor, checkOut: new Date().toLocaleTimeString() }
-        : visitor
-    );
-    setVisitors(updatedVisitors);
+  const handleCheckOut = (id) => {
+    const checkOutTime = formatTime(new Date());
+    
+    setVisitors(visitors.map(visitor =>
+      visitor.id === id ? { ...visitor, checkOut: checkOutTime } : visitor
+    ));
+  };
+
+  const handleAddVisitor = (e) => {
+    e.preventDefault();
+    if (newVisitor.name && newVisitor.reason) {
+      const checkInTime = formatTime(new Date());
+      const newId = visitors.length > 0 ? Math.max(...visitors.map(v => v.id)) + 1 : 1;
+      
+      setVisitors([...visitors, {
+        id: newId,
+        name: newVisitor.name,
+        reason: newVisitor.reason,
+        checkIn: checkInTime,
+        checkOut: 'N/A'
+      }]);
+      setNewVisitor({ name: '', reason: '', checkIn: '' });
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 ml-32">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-3xl">
-        <h2 className="text-2xl font-bold text-center mb-4">Visitor Log</h2>
+    <div className="ml-64 p-8 bg-gray-50 min-h-screen">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Visitor Log</h1>
+        <p className="text-gray-600 mt-2">Track and manage visitor entries</p>
+      </div>
 
-        {/* New Visitor Button */}
-        <button
-          className="bg-purple-600 text-white px-4 py-2 rounded-md mb-4"
-          onClick={() => setIsFormVisible(!isFormVisible)}
-        >
-          New Visitor
-        </button>
-
-        {/* Form for New Visitor */}
-        {isFormVisible && (
-          <div className="mb-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex flex-col">
-                <label className="font-semibold">Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter visitor name"
-                  className="input input-bordered w-full"
-                  value={newVisitor.name}
-                  onChange={(e) => setNewVisitor({ ...newVisitor, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="font-semibold">Reason for Visit</label>
-                <input
-                  type="text"
-                  placeholder="Enter reason"
-                  className="input input-bordered w-full"
-                  value={newVisitor.reason}
-                  onChange={(e) => setNewVisitor({ ...newVisitor, reason: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="flex justify-end">
-                <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded-md">
-                  Submit
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Visitor Table */}
-        <div className="overflow-x-auto">
-          <table className="table-auto w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="border border-gray-300 px-4 py-2">#</th>
-                <th className="border border-gray-300 px-4 py-2">Name</th>
-                <th className="border border-gray-300 px-4 py-2">Reason for Visit</th>
-                <th className="border border-gray-300 px-4 py-2">Check-in</th>
-                <th className="border border-gray-300 px-4 py-2">Check-out</th>
-                <th className="border border-gray-300 px-4 py-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visitors.map((visitor) => (
-                <tr key={visitor.id} className="text-center">
-                  <td className="border border-gray-300 px-4 py-2">{visitor.id}</td>
-                  <td className="border border-gray-300 px-4 py-2">{visitor.name}</td>
-                  <td className="border border-gray-300 px-4 py-2">{visitor.reason}</td>
-                  <td className="border border-gray-300 px-4 py-2">{visitor.checkIn}</td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {visitor.checkOut || "N/A"}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {visitor.checkOut === "" && (
-                      <button
-                        className=""
-                        onClick={() => handleCheckout(visitor.id)}
-                      >
-                        <FaSignOutAlt className="inline mr-2" /> {/* Icon for Check-out */}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* New Visitor Form */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="flex items-center mb-4">
+          <FiUserPlus className="text-blue-600 text-xl mr-2" />
+          <h2 className="text-xl font-semibold text-gray-800">New Visitor</h2>
         </div>
+        <form onSubmit={handleAddVisitor} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input
+            type="text"
+            placeholder="Visitor Name"
+            value={newVisitor.name}
+            onChange={(e) => setNewVisitor({ ...newVisitor, name: e.target.value })}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Reason for Visit"
+            value={newVisitor.reason}
+            onChange={(e) => setNewVisitor({ ...newVisitor, reason: e.target.value })}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+          >
+            <FiUserPlus className="mr-2" /> Add Visitor
+          </button>
+        </form>
+      </div>
+
+      {/* Visitors Table */}
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gradient-to-r from-blue-600 to-blue-700">
+            <tr>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">#</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">Name</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">Reason for Visit</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">
+                <div className="flex items-center">
+                  <FiClock className="mr-2" />
+                  Check-in
+                </div>
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">
+                <div className="flex items-center">
+                  <FiClock className="mr-2" />
+                  Check-out
+                </div>
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {visitors.map((visitor) => (
+              <tr key={visitor.id} className="hover:bg-blue-50 transition-colors">
+                <td className="px-6 py-4 text-sm text-gray-800">{visitor.id}</td>
+                <td className="px-6 py-4 text-sm text-gray-800 font-medium">{visitor.name}</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{visitor.reason}</td>
+                <td className="px-6 py-4 text-sm text-green-600">{visitor.checkIn}</td>
+                <td className="px-6 py-4 text-sm text-blue-600">{visitor.checkOut}</td>
+                <td className="px-6 py-4">
+                  {visitor.checkOut === 'N/A' && (
+                    <button
+                      onClick={() => handleCheckOut(visitor.id)}
+                      className="flex items-center px-3 py-1 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                    >
+                      <FiLogOut className="mr-1" /> Check-out
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
-};
+}
 
-export default VisitorLog;
+export default Visitors;

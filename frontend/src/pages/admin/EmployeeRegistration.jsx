@@ -1,11 +1,14 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { registerEmployee } from "../../api/authApi";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { registerEmployee, getEmployeeById } from "../../api/authApi";
+import employeeAPI from "../../api/employeeAPI";
 import Button from "../../components/common/Button";
-import { useAuth } from "../../context/AuthContext"; // Add this import
+import { useAuth } from "../../context/AuthContext";
 
 function EmployeeRegistration() {
-  const { user } = useAuth(); // Add this line to get the user context
+  const { user } = useAuth();
+  const { id } = useParams();
+  const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -43,18 +46,47 @@ function EmployeeRegistration() {
     }
   };
 
+  useEffect(() => {
+    if (id) {
+      const fetchEmployee = async () => {
+        try {
+          const employee = await getEmployeeById(id);
+          setFormData({
+            ...employee,
+            joiningDate: new Date(employee.joiningDate).toISOString().split("T")[0],
+            password: "" // Clear password field in edit mode
+          });
+          setIsEditMode(true);
+        } catch (error) {
+          setError(error.response?.data?.message || "Failed to load employee data");
+        }
+      };
+      fetchEmployee();
+    }
+  }, [id]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await registerEmployee({
-        ...formData,
-        hatchery: user?.hatcheryName || "", // Use optional chaining
-        joiningDate: new Date(formData.joiningDate),
-      });
-      navigate("/admin/dashboard", { state: { success: "Employee registered successfully" } });
+      if (isEditMode) {
+        await employeeAPI.updateEmployee(id, {
+          ...formData,
+          hatchery: user?.hatcheryName || "",
+          joiningDate: new Date(formData.joiningDate)
+        });
+        navigate("/admin/dashboard", { state: { success: "Employee updated successfully" } });
+      } else {
+        await registerEmployee({
+          ...formData,
+          hatchery: user?.hatcheryName || "",
+          joiningDate: new Date(formData.joiningDate),
+        });
+        navigate("/admin/dashboard", { state: { success: "Employee registered successfully" } });
+      }
     } catch (error) {
-      setError(error.response?.data?.message || "Failed to register employee");
-      console.error("Registration error:", error);
+      setError(error.response?.data?.message || 
+        (isEditMode ? "Failed to update employee" : "Failed to register employee"));
+      console.error("Error:", error);
     }
   };
 
@@ -62,7 +94,7 @@ function EmployeeRegistration() {
     <div className="min-h-screen bg-base-200 flex items-center justify-center p-4 ml-56">
       <div className="max-w-3xl w-full bg-base-100 shadow-xl rounded-lg p-8">
         <h2 className="text-3xl font-bold text-primary mb-6 text-center">
-          Register New Employee
+          {isEditMode ? "Edit Employee" : "Register New Employee"}
         </h2>
         {error && (
           <div className="alert alert-error mb-6">

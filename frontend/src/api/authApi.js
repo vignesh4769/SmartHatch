@@ -54,6 +54,16 @@ export const getEmployees = async () => {
   return response.data;
 };
 
+export const getEmployeeById = async (id) => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  const response = await api.get(`/api/admin/employees/${id}`, {
+    headers: {
+      'Authorization': `Bearer ${user?.token}`
+    }
+  });
+  return response.data;
+};
+
 export const verifyEmail = async (email, otp) => {
   const response = await api.post(`${API_URL}/verify-email`, { email, otp });
   return response.data;

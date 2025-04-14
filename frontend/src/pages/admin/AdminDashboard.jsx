@@ -134,12 +134,12 @@ const AdminDashboard = () => {
             <Button
               text="Register Employee"
               className="btn btn-primary"
-              onClick={() => navigate("/admin/employees/register")}
+              onClick={() => navigate("/admin/employees/new")}
             />
             <Button
-              text="View Employees"
+              text="Mark Attendance"
               className="btn btn-primary"
-              onClick={() => navigate("/admin/employees")}
+              onClick={() => navigate("/admin/EmployeeAttendance")}
             />
           </div>
         </div>

@@ -126,18 +126,6 @@ function Navbar({ userRole }) {
             <>
               <li>
                 <Link
-                  to="/admin/employees"
-                  className={`flex items-center hover:text-gray-300 ${
-                    location.pathname === "/admin/employees"
-                      ? "text-indigo-300"
-                      : ""
-                  }`}
-                >
-                  <HiOutlineUsers className="mr-1" /> Employees
-                </Link>
-              </li>
-              <li>
-                <Link
                   to="/admin/visitors"
                   className={`flex items-center hover:text-gray-300 ${
                     location.pathname === "/admin/visitors"

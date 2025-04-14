@@ -15,8 +15,6 @@ const SidebarEmployee = () => {
   const navItems = [
     { path: "/employee/dashboard", icon: <FiHome size={18} />, label: "Dashboard" },
     { path: "/employee/attendance", icon: <FiCalendar size={18} />, label: "My Attendance" },
-    { path: "/employee/leaves", icon: <FiMail size={18} />, label: "My Leaves" },
-    { path: "/employee/leave-application", icon: <FiMail size={18} />, label: "Apply Leave" },
     { path: "/employee/salary", icon: <FiDollarSign size={18} />, label: "My Salary" },
     { path: "/employee/stock-requests", icon: <FiPackage size={18} />, label: "Stock Requests" },
     { path: "/employee/mess-schedule", icon: <FiCoffee size={18} />, label: "Mess Schedule" }
@@ -26,7 +24,7 @@ const SidebarEmployee = () => {
     <aside className="w-64 h-screen bg-base-200 p-5 fixed shadow-lg">
       <div className="flex items-center mb-5">
         <img 
-          src="/src/assets/images/employee-avatar.jpg" 
+          src="C:\SmartHatch\frontend\public\images\employee-avatar.jpg" 
           className="w-12 h-12 rounded-full" 
           alt="Employee"
           onError={(e) => {

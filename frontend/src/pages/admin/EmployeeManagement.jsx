@@ -117,7 +117,7 @@ const EmployeeManagement = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-4">
                           <button
-                            onClick={() => navigate(`/admin/employees/${employee._id}`)}
+                            onClick={() => navigate(`/admin/employees/${employee._id}/edit`)}
                             className="text-blue-600 hover:text-blue-800 transition duration-200"
                           >
                             Edit

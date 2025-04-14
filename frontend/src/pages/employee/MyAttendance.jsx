@@ -1,161 +1,148 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useAuth } from "../../context/AuthContext";
-import AttendanceChart from "../../components/employee/AttendanceChart";
+import React, { useState } from 'react';
+import { FaCalendarCheck, FaCalendarTimes, FaCalendarDay, FaClock } from 'react-icons/fa';
 
 const MyAttendance = () => {
-  const [attendanceData, setAttendanceData] = useState([]);
-  const [stats, setStats] = useState({
-    present: 0,
-    absent: 0,
-    halfDay: 0,
-    percentage: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const fetchAttendanceData = async () => {
-      try {
-        const response = await axios.get(
-          `/api/employee/attendance?employeeId=${user._id}`
-        );
-        setAttendanceData(response.data.records);
-
-        // Calculate stats
-        const presentCount = response.data.records.filter(
-          (a) => a.status === "present"
-        ).length;
-        const absentCount = response.data.records.filter(
-          (a) => a.status === "absent"
-        ).length;
-        const halfDayCount = response.data.records.filter(
-          (a) => a.status === "half-day"
-        ).length;
-        const totalDays = response.data.records.length;
-
-        setStats({
-          present: presentCount,
-          absent: absentCount,
-          halfDay: halfDayCount,
-          percentage:
-            totalDays > 0
-              ? Math.round(
-                  ((presentCount + halfDayCount * 0.5) / totalDays) * 100
-                )
-              : 0,
-        });
-      } catch (err) {
-        setError("Failed to fetch attendance data");
-        console.error("Error fetching attendance:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAttendanceData();
-  }, [user._id]);
+  const [attendanceRecords] = useState([
+    {
+      date: '2024-02-19',
+      status: 'present',
+      checkIn: '09:00 AM',
+      checkOut: '06:00 PM'
+    },
+    {
+      date: '2024-02-18',
+      status: 'present',
+      checkIn: '08:55 AM',
+      checkOut: '06:05 PM'
+    },
+    {
+      date: '2024-02-17',
+      status: 'half-day',
+      checkIn: '09:00 AM',
+      checkOut: '02:00 PM'
+    },
+    {
+      date: '2024-02-16',
+      status: 'absent',
+      checkIn: '-',
+      checkOut: '-'
+    }
+  ]);
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
-  if (loading) return <div className="p-4">Loading attendance records...</div>;
-  if (error) return <div className="text-red-500 p-4">{error}</div>;
-
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">My Attendance</h1>
+    <div className="flex">
+      <div className="flex-1 ml-64 p-8 bg-gray-100 min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Header Section */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">My Attendance</h1>
+              <p className="text-gray-600 mt-1">Track your attendance and performance</p>
+            </div>
+            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
+              <FaClock className="text-blue-600" />
+              <span className="text-gray-700 font-medium">
+                {new Date().toLocaleTimeString()}
+              </span>
+            </div>
+          </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-green-800">Present</h3>
-          <p className="text-2xl font-bold text-green-600">{stats.present}</p>
-        </div>
-        <div className="bg-red-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-red-800">Absent</h3>
-          <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
-        </div>
-        <div className="bg-yellow-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-yellow-800">Half Days</h3>
-          <p className="text-2xl font-bold text-yellow-600">{stats.halfDay}</p>
-        </div>
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-800">Attendance %</h3>
-          <p className="text-2xl font-bold text-blue-600">
-            {stats.percentage}%
-          </p>
-        </div>
-      </div>
+          {/* Attendance Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Present Days Card */}
+            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Present Days</p>
+                  <h3 className="text-3xl font-bold text-green-600 mt-1">22</h3>
+                </div>
+                <div className="bg-green-100 p-3 rounded-full">
+                  <FaCalendarCheck className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </div>
 
-      {/* Attendance Chart */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <AttendanceChart data={attendanceData} />
-      </div>
+            {/* Absent Days Card */}
+            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Absent Days</p>
+                  <h3 className="text-3xl font-bold text-red-600 mt-1">3</h3>
+                </div>
+                <div className="bg-red-100 p-3 rounded-full">
+                  <FaCalendarTimes className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+            </div>
 
-      {/* Attendance Records Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Check-In
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Check-Out
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Notes
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {attendanceData.map((record) => (
-              <tr key={record._id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  {formatDate(record.date)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      record.status === "present"
-                        ? "bg-green-100 text-green-800"
-                        : record.status === "absent"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {record.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {record.checkIn || "--:--"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {record.checkOut || "--:--"}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {record.notes || "-"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            {/* Half Days Card */}
+            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Half Days</p>
+                  <h3 className="text-3xl font-bold text-yellow-600 mt-1">2</h3>
+                </div>
+                <div className="bg-yellow-100 p-3 rounded-full">
+                  <FaCalendarDay className="w-6 h-6 text-yellow-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Monthly Record Table */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-800">Monthly Record</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check In</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check Out</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {attendanceRecords.map((record, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDate(record.date)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 text-xs rounded-full ${
+                          record.status === 'present' ? 'bg-green-100 text-green-800' :
+                          record.status === 'absent' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {record.checkIn}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {record.checkOut}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-export default MyAttendance; // This is the crucial default export
+export default MyAttendance;

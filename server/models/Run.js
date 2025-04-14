@@ -1,18 +1,9 @@
 import mongoose from 'mongoose';
 
 const tankSchema = new mongoose.Schema({
-  tankNumber: {
-    type: String,
-    required: true
-  },
-  capacity: {
-    type: Number,
-    required: true
-  },
-  currentOccupancy: {
-    type: Number,
-    default: 0
-  },
+  tankNumber: { type: String, required: true },
+  capacity: { type: Number, required: true },
+  currentOccupancy: { type: Number, default: 0 },
   status: {
     type: String,
     enum: ['empty', 'in-use', 'maintenance'],
@@ -35,19 +26,10 @@ const runSchema = new mongoose.Schema({
     ref: 'Hatchery',
     required: true
   },
-  runNumber: {
-    type: String,
-    required: true
-  },
+  runNumber: { type: String, required: true },
   description: String,
-  startDate: {
-    type: Date,
-    required: true
-  },
-  expectedEndDate: {
-    type: Date,
-    required: true
-  },
+  startDate: { type: Date, required: true },
+  expectedEndDate: { type: Date, required: true },
   actualEndDate: Date,
   status: {
     type: String,
@@ -60,10 +42,7 @@ const runSchema = new mongoose.Schema({
       ref: 'Employee',
       required: true
     },
-    role: {
-      type: String,
-      required: true
-    },
+    role: { type: String, required: true },
     shift: {
       type: String,
       enum: ['morning', 'afternoon', 'night'],
@@ -77,45 +56,21 @@ const runSchema = new mongoose.Schema({
       ref: 'Inventory',
       required: true
     },
-    quantityUsed: {
-      type: Number,
-      required: true
-    },
-    dateUsed: {
-      type: Date,
-      default: Date.now
-    }
+    quantityUsed: { type: Number, required: true },
+    dateUsed: { type: Date, default: () => Date.now() }
   }],
   financials: {
-    budget: {
-      type: Number,
-      required: true
-    },
+    budget: { type: Number, required: true },
     expenses: [{
-      category: {
-        type: String,
-        required: true
-      },
-      amount: {
-        type: Number,
-        required: true
-      },
-      date: {
-        type: Date,
-        default: Date.now
-      },
+      category: { type: String, required: true },
+      amount: { type: Number, required: true },
+      date: { type: Date, default: () => Date.now() },
       description: String
     }],
-    revenue: {
-      type: Number,
-      default: 0
-    }
+    revenue: { type: Number, default: 0 }
   },
   dailyReports: [{
-    date: {
-      type: Date,
-      required: true
-    },
+    date: { type: Date, default: () => Date.now(), required: true },
     temperature: Number,
     pH: Number,
     oxygen: Number,
@@ -136,10 +91,7 @@ const runSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  deletedAt: {
-    type: Date,
-    default: null
-  },
+  deletedAt: { type: Date, default: null },
   deletionReason: String
 }, {
   timestamps: true
@@ -156,21 +108,24 @@ runSchema.methods.calculateProfitLoss = function() {
   return this.financials.revenue - totalExpenses;
 };
 
-// Update run status based on dates
+// Update status based on dates
 runSchema.pre('save', function(next) {
   const now = new Date();
-  if (now < this.startDate) {
-    this.status = 'planned';
-  } else if (now >= this.startDate && !this.actualEndDate) {
-    this.status = 'in-progress';
-  } else if (this.actualEndDate) {
-    this.status = 'completed';
+  if (this.status !== 'cancelled') {
+    if (now < this.startDate) {
+      this.status = 'planned';
+    } else if (now >= this.startDate && !this.actualEndDate) {
+      this.status = 'in-progress';
+    } else if (this.actualEndDate) {
+      this.status = 'completed';
+    }
   }
   next();
 });
 
 // Soft delete method
 runSchema.methods.softDelete = async function(reason) {
+  if (this.deletedAt) return;
   this.deletedAt = new Date();
   this.deletionReason = reason;
   this.status = 'cancelled';
@@ -178,5 +133,4 @@ runSchema.methods.softDelete = async function(reason) {
 };
 
 const Run = mongoose.model('Run', runSchema);
-
 export default Run;
