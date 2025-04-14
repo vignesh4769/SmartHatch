@@ -20,7 +20,7 @@ router.route('/register')
 
 router.route('/')
   .get(getEmployees)
-  .post(createEmployee);
+  .post(protect, admin, createEmployee);
 
 router.route('/:id')
   .get(getEmployee)

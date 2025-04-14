@@ -1,6 +1,12 @@
 import mongoose from 'mongoose';
 
 const employeeSchema = new mongoose.Schema({
+  role: {
+    type: String,
+    enum: ['employee'],
+    default: 'employee',
+    required: true
+  },
   password: {
     type: String,
     required: [true, 'Password is required'],

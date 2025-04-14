@@ -35,8 +35,18 @@ export const signup = async (userData) => {
 };
 
 export const registerEmployee = async (employeeData) => {
-  const response = await api.post(`${API_URL}/employee/register`, employeeData);
-  return response.data;
+  try {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const response = await api.post('/api/auth/admin/employee/register', employeeData, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${user?.token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Registration failed');
+  }
 };
 
 export const getEmployees = async () => {

@@ -1,13 +1,14 @@
 import User from '../models/User.js';
 import Attendance from '../models/Attendance.js';
 import LeaveRequest from '../models/LeaveRequest.js';
+import Employee from '../models/Employee.js';
 
 // Get dashboard statistics
 // Get pending leave requests
 
 export const getPendingLeaves = async (req, res) => {
   try {
-    const hatcheryId = req.user.hatcheryId;
+    const hatcheryId = req.user.hatchery;
     const pendingLeaves = await LeaveRequest.find({ 
       hatcheryId,
       status: 'pending' 
@@ -25,21 +26,21 @@ export const getPendingLeaves = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
   try {
-    const hatcheryId = req.user.hatcheryId;
+    const hatcheryName = req.user.hatcheryName;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get total employees
-    const totalEmployees = await User.countDocuments({ 
-      hatcheryId,
-      role: 'employee' 
+    // Get total employees for this hatchery
+    const totalEmployees = await Employee.countDocuments({
+      hatchery: hatcheryName,
+      deletedAt: null
     });
 
     // Get active employees (verified)
-    const activeEmployees = await User.countDocuments({ 
-      hatcheryId,
+    const activeEmployees = await User.countDocuments({
+      hatcheryName,
       role: 'employee',
-      isVerified: true 
+      isVerified: true
     });
 
     // Get today's attendance
@@ -48,7 +49,7 @@ export const getDashboardStats = async (req, res) => {
         $match: {
           date: today,
           employeeId: { 
-            $in: await User.find({ hatcheryId, role: 'employee' }).distinct('_id') 
+            $in: await User.find({ hatcheryName, role: 'employee' }).distinct('_id')
           }
         }
       },

@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
+import asyncHandler from "express-async-handler";
 
 // Email transporter configuration
 const transporter = nodemailer.createTransport({
@@ -80,6 +81,7 @@ export const login = async (req, res) => {
           role: user.role,
           email: user.email,
           timestamp: Date.now(),
+          redirectPath: '/admin/dashboard'
         },
         process.env.JWT_KEY,
         { expiresIn: "1d" }
@@ -397,103 +399,61 @@ export const logout = async (req, res) => {
   }
 };
 
-export const registerEmployee = async (req, res) => {
-  try {
-    const {
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      position,
-      department,
-      salary,
-      emergencyContact,
-      password,
-    } = req.body;
+export const registerEmployee = asyncHandler(async (req, res) => {
+  const { 
+    firstName,
+    lastName,
+    email,
+    phone,
+    address,
+    position,
+    department,
+    salary,
+    password
+  } = req.body;
 
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !phone ||
-      !address ||
-      !position ||
-      !department ||
-      !salary ||
-      !emergencyContact ||
-      !password
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: "All fields are required",
-      });
-    }
-
-    const passwordErrors = validatePassword(password);
-    if (passwordErrors.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: "Password validation failed",
-        details: passwordErrors,
-      });
-    }
-
-    const existingEmployee = await Employee.findOne({ email });
-    if (existingEmployee) {
-      return res.status(400).json({
-        success: false,
-        error: "Email already registered",
-      });
-    }
-
-    const admin = await User.findById(req.user._id);
-    if (!admin || admin.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        error: "Not authorized",
-      });
-    }
-
-    const employeeId = `EMP${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newEmployee = new Employee({
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      position,
-      department,
-      salary,
-      emergencyContact,
-      employeeId,
-      hatchery: admin.hatcheryName,
-      password: hashedPassword,
+  if (!firstName || !lastName || !email || !phone || !address || !position || !department || !salary || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'All required fields must be provided'
     });
+  }
 
-    await newEmployee.save();
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  try {
+    const employee = await Employee.create({
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      position,
+      department,
+      salary,
+      password: hashedPassword,
+      employeeId: `EMP${crypto.randomBytes(4).toString("hex").toUpperCase()}`,
+      hatchery: req.user.hatcheryName
+    });
 
     res.status(201).json({
       success: true,
-      message: "Employee registered successfully",
-      employee: {
-        employeeId,
-        firstName,
-        lastName,
-        email,
-        hatchery: admin.hatcheryName,
-      },
+      data: employee
     });
   } catch (error) {
-    console.error("Employee registration error:", error);
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'Email already exists'
+      });
+    }
     res.status(500).json({
       success: false,
-      error: "Server error during employee registration",
+      message: 'Employee registration failed',
+      error: error.message
     });
   }
-};
+});
 
 export const getEmployees = async (req, res) => {
   try {

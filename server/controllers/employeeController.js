@@ -1,7 +1,7 @@
 import Employee from '../models/Employee.js';
-import User from '../models/User.js';
+
 import asyncHandler from 'express-async-handler';
-import mongoose from 'mongoose';
+
 import { generateEmployeeId } from '../utils/idGenerator.js';
 
 // @desc    Get all employees for a hatchery
@@ -47,7 +47,26 @@ export const getEmployees = asyncHandler(async (req, res) => {
 // @route   POST /api/employees
 // @access  Private/Admin
 export const registerEmployee = asyncHandler(async (req, res) => {
-  // Alias for createEmployee to maintain backward compatibility
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    address,
+    position,
+    department,
+    salary,
+    emergencyContact
+  } = req.body;
+
+  if (!firstName || !lastName || !email || !phone || !address || !position || !department || !salary) {
+    return res.status(400).json({
+      success: false,
+      message: 'All required fields must be provided'
+    });
+  }
+
+  const hashedPassword = await bcrypt.hash(req.body.password, 10);
   return createEmployee(req, res);
 });
 
@@ -87,18 +106,18 @@ export const createEmployee = asyncHandler(async (req, res) => {
   try {
     // Create employee
     const employee = await Employee.create({
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      position,
-      department,
-      joiningDate,
-      salary,
-      emergencyContact,
-      employeeId: generateEmployeeId(),
-      hatchery: req.user.hatcheryName // Set hatchery from admin user
+    firstName,
+    lastName,
+    email,
+    phone,
+    address,
+    position,
+    department,
+    salary,
+    emergencyContact,
+    password: hashedPassword,
+    employeeId: generateEmployeeId(),
+    hatchery: req.user.hatcheryName
     });
 
     res.status(201).json({

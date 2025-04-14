@@ -16,12 +16,15 @@ const EmployeeManagement = () => {
     const fetchEmployees = async () => {
       try {
         setLoading(true);
+        console.log('Admin hatcheryName:', user.hatcheryName);
         const response = await api.get('/api/admin/employees', {
           params: { hatchery: user.hatcheryName }
         });
-        setEmployees(Array.isArray(response.data) ? response.data : []);
+        console.log('API response:', response.data);
+        setEmployees(Array.isArray(response.data.data) ? response.data.data : []);
         setError(null);
       } catch (err) {
+        console.error('Error fetching employees:', err);
         setError(err.response?.data?.message || 'Failed to fetch employees');
         toast.error('Failed to fetch employees');
       } finally {
