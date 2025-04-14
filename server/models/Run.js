@@ -161,7 +161,7 @@ runSchema.pre('save', function(next) {
   const now = new Date();
   if (now < this.startDate) {
     this.status = 'planned';
-  } else if (now >= this.startDate && (!this.actualEndDate)) {
+  } else if (now >= this.startDate && !this.actualEndDate) {
     this.status = 'in-progress';
   } else if (this.actualEndDate) {
     this.status = 'completed';
