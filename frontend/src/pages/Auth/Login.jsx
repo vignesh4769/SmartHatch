@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../../styles/auth.css";
 import Button from "../../components/common/Button";
 import ForgotPassword from "./ForgotPassword";
-import { login as authLogin } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
 
 function Login() {
@@ -12,6 +11,7 @@ function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedRole, setSelectedRole] = useState("employee");
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
@@ -19,24 +19,26 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const data = await authLogin(email, password);
-      if (data) {
-        login(data.user);
-        
-        // Get the redirect path from location state or use default based on role
-        const from = location.state?.from?.pathname || 
-          (data.user.role === "admin" ? "/admin/dashboard" : "/employee/dashboard");
-        
-        navigate(from, { replace: true });
-      }
+      setError(null);
+      const data = await login({ email, password, role: selectedRole });
+
+      const from =
+        location.state?.from?.pathname ||
+        (data.role === "admin" ? "/admin/dashboard" : "/employee/dashboard");
+
+      navigate(from, { replace: true });
     } catch (error) {
-      if (error.response && !error.response.data.success) {
-        setError(error.response.data.error);
-      } else {
-        setError(error.message || "An error occurred at the server side");
-      }
+      setError(error.message || 'An unexpected error occurred');
     }
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const message = params.get('message');
+    if (message) {
+      setError(decodeURIComponent(message));
+    }
+  }, [location.search]);
 
   if (showForgotPassword) {
     return <ForgotPassword onBack={() => setShowForgotPassword(false)} />;
@@ -63,6 +65,30 @@ function Login() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-2">
+          <div className="flex justify-center space-x-4 mb-4">
+            <button
+              type="button"
+              className={`px-4 py-2 rounded-md ${
+                selectedRole === "employee"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200"
+              }`}
+              onClick={() => setSelectedRole("employee")}
+            >
+              Employee
+            </button>
+            <button
+              type="button"
+              className={`px-4 py-2 rounded-md ${
+                selectedRole === "admin"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200"
+              }`}
+              onClick={() => setSelectedRole("admin")}
+            >
+              Admin
+            </button>
+          </div>
           <div className="form-group">
             <label
               htmlFor="email"
@@ -94,7 +120,7 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength="4"
+              minLength="8"
             />
           </div>
 
@@ -111,24 +137,26 @@ function Login() {
             </label>
           </div>
 
-          <Button 
+          <Button
             type="submit"
-            text="Login" 
-            className="w-full btn btn-primary rounded-md" 
+            text="Login"
+            className="w-full btn btn-primary rounded-md"
           />
+          {selectedRole === "admin" && (
+            <div className="mt-3 text-center">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/signup")}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  Sign up here
+                </button>
+              </p>
+            </div>
+          )}
         </form>
-
-        <div className="mt-2 text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{" "}
-            <button
-              onClick={() => navigate("/signup")}
-              className="text-blue-500 hover:underline"
-            >
-              Sign up here
-            </button>
-          </p>
-        </div>
 
         <div className="mt-3 text-center">
           <Button

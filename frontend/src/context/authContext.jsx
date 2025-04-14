@@ -1,82 +1,122 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from 'axios';
-import api from '../api/config';
+import api from "../api/config";
+import { useNavigate } from "react-router-dom";
 
-const userContext = createContext();
+const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    if (user && user.token) {
       localStorage.setItem("user", JSON.stringify(user));
+      api.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
     } else {
       localStorage.removeItem("user");
+      delete api.defaults.headers.common["Authorization"];
     }
   }, [user]);
 
-  const login = async (userData) => {
+  const login = async ({ email, password, role }) => {
     try {
-      if (!userData || !userData.token) {
-        throw new Error('Invalid login response');
+      if (!role || !["admin", "employee"].includes(role)) {
+        throw new Error("Invalid role specified");
       }
 
-      const { token, _id, role, name, hatcheryName, email, caaNumber } = userData;
-      
-      // Create user object with all necessary data
-      const userToStore = {
-        _id,
-        role: role || 'employee',
-        name,
-        hatcheryName,
+      const response = await api.post(`/api/auth/${role}/login`, {
         email,
-        token,
-        caaNumber
-      };
-      
-      // Store user data and update state
-      setUser(userToStore);
-      localStorage.setItem("user", JSON.stringify(userToStore));
+        password
+      });
+
+      const userData = response.data.user;
+      if (!userData || !userData.token) {
+        throw new Error("Invalid login response");
+      }
+
+      delete api.defaults.headers.common["Authorization"];
+      api.defaults.headers.common["Authorization"] = `Bearer ${userData.token}`;
+      setUser(userData);
+      return userData;
     } catch (error) {
-      console.error("Login error:", error);
-      throw error;
+      let errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Login failed. Please try again.";
+      if (error.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      }
+      throw new Error(errorMessage);
     }
   };
 
-  const logout = async () => {
+  const logout = async (redirectUrl = "/login") => {
     try {
-      await api.post("/api/auth/logout");
+      if (user) {
+        await api.post("/api/auth/logout");
+      }
     } catch (error) {
       console.error("Logout failed:", error);
     } finally {
       setUser(null);
-      localStorage.removeItem("user");
-      // Clear axios default headers
-      delete axios.defaults.headers.common['Authorization'];
+      navigate(redirectUrl);
     }
   };
 
+  const handleSessionExpired = (errorMessage) => {
+    logout(`/login?message=${encodeURIComponent(errorMessage)}`);
+  };
+
+  useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const errorDetails = {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+          url: error.config?.url,
+        };
+        console.error("API error:", errorDetails);
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          const errorMessage =
+            error.response?.data?.error || "Session expired, please login again";
+          handleSessionExpired(errorMessage);
+          return Promise.reject(new Error(errorMessage));
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      api.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
   return (
-    <userContext.Provider value={{ 
-      user, 
-      login, 
-      logout,
-      isAdmin: user?.role === 'admin' // Additional helper
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        isAdmin: user?.role === "admin",
+        handleSessionExpired,
+      }}
+    >
       {children}
-    </userContext.Provider>
+    </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(userContext);
+  const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
-export default AuthProvider;
+export { AuthProvider };

@@ -85,6 +85,14 @@ const AppRoutes = () => {
             }
           />
           <Route
+            path="/admin/employees/new"
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <EmployeeRegistration />
+              </Suspense>
+            }
+          />
+          <Route
             path="/admin/employees/register"
             element={
               <Suspense fallback={<LoadingSpinner />}>

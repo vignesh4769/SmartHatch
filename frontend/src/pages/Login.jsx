@@ -30,12 +30,23 @@ function Login() {
       return;
     }
 
-    const userData = {
-      email,
-      password,
-    };
+    try {
+      const userData = {
+        email,
+        password,
+      };
 
-    await login(userData);
+      const response = await login(userData);
+      
+      // Handle role-based redirection
+      if (response?.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (response?.role === 'employee') {
+        navigate('/employee/dashboard');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Login failed');
+    }
   };
 
   if (isLoading) {

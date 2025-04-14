@@ -15,14 +15,12 @@ const router = express.Router();
 router.use(protect, admin);
 
 // Dashboard
-router.get('/dashboard/stats', getDashboardStats);
+router.get('/dashboard-stats', getDashboardStats);
 router.get('/runs', runController.getRuns);
 
 // Employee Management
 router.get('/employees', getEmployees);
-
-
-router.post('/employees/register', registerEmployee);
+router.post('/employees', registerEmployee);
 router.put('/employees/:id', updateEmployee);
 router.delete('/employees/:id', deleteEmployee);
 

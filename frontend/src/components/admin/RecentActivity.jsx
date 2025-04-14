@@ -12,7 +12,7 @@ const RecentActivity = ({ activities }) => {
               <div className="flex justify-between">
                 <p className="text-sm font-medium">{activity.message}</p>
                 <span className="text-xs text-gray-500">
-                  {format(new Date(activity.createdAt), 'MMM dd, h:mm a')}
+                  {activity.createdAt ? format(new Date(activity.createdAt), 'MMM dd, h:mm a') : 'Invalid date'}
                 </span>
               </div>
               {activity.details && (

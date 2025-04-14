@@ -1,132 +1,88 @@
-import jwt from 'jsonwebtoken';
-import asyncHandler from 'express-async-handler';
-import User from '../models/User.js';
+import jwt from "jsonwebtoken";
+import asyncHandler from "express-async-handler";
+import User from "../models/User.js";
+import Employee from "../models/Employee.js";
 
-// Token blacklist store
-const tokenBlacklist = new Set();
-
-// Clean up expired tokens from blacklist periodically
-setInterval(() => {
-  const now = Date.now() / 1000; // Current time in seconds
-  tokenBlacklist.forEach(token => {
-    try {
-      const decoded = jwt.decode(token);
-      if (decoded && decoded.exp < now) {
-        tokenBlacklist.delete(token);
-      }
-    } catch (error) {
-      tokenBlacklist.delete(token); // Remove invalid tokens
-    }
-  });
-}, 3600000); // Clean up every hour
-
-// Middleware to protect routes - ensures user is authenticated
 const protect = asyncHandler(async (req, res, next) => {
   let token;
 
-  // Check for token in Authorization header
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
     try {
-      // Get token from header and validate format
-      const authParts = req.headers.authorization.split(' ');
-      if (authParts.length !== 2 || authParts[0] !== 'Bearer') {
-        throw new Error('Invalid Authorization header format');
-      }
-      token = authParts[1];
-
-      // Validate token string
-      if (!token || token.trim() === '') {
-        throw new Error('Empty token provided');
+      token = authHeader.split(" ")[1];
+      if (!token || token.trim() === "") {
+        console.error("Empty token provided");
+        res.status(401);
+        throw new Error("Empty token provided");
       }
 
-      // Check JWT configuration
       if (!process.env.JWT_KEY) {
-        console.error('JWT_KEY environment variable is not set');
-        throw new Error('Authentication service misconfigured');
+        console.error("JWT_KEY environment variable is not set");
+        res.status(500);
+        throw new Error("Authentication service misconfigured");
       }
 
-      // Check if token is blacklisted
-      if (tokenBlacklist.has(token)) {
-        throw new Error('Token has been invalidated - please login again');
-      }
+      const decoded = jwt.verify(token, process.env.JWT_KEY);
+      console.log("Token decoded:", {
+        _id: decoded._id,
+        role: decoded.role,
+        email: decoded.email,
+      });
 
-      // Verify token and handle expiration
-      let decoded;
-      try {
-        decoded = jwt.verify(token, process.env.JWT_KEY);
-
-        // Additional security checks
-        const now = Date.now() / 1000;
-        if (decoded.iat > now) {
-          throw new Error('Token issued in the future - invalid');
-        }
-        if (decoded.exp <= now) {
-          throw new Error('Token has expired');
-        }
-      } catch (jwtError) {
-        if (jwtError.name === 'TokenExpiredError') {
-          throw new Error('Session expired - please login again');
-        }
-        throw new Error('Invalid token - please login again');
-      }
-
-      // Validate token payload
       if (!decoded._id || !decoded.role || !decoded.email) {
-        throw new Error('Invalid token format - please login again');
+        console.error("Invalid token format:", decoded);
+        res.status(401);
+        throw new Error("Invalid token format - please login again");
       }
 
-      // Get user from token and attach to request
-      const user = await User.findById(decoded._id).select('-password');
-      
-      if (!user) {
-        throw new Error('User not found or deactivated');
+      if (decoded.role === "admin") {
+        req.user = await User.findById(decoded._id).select("-password");
+      } else if (decoded.role === "employee") {
+        req.user = await Employee.findById(decoded._id).select("-password");
       }
 
-      req.user = user;
+      if (!req.user) {
+        console.error("User not found for ID:", decoded._id);
+        res.status(401);
+        throw new Error("User not found or deactivated");
+      }
+
+      console.log("Authenticated user:", {
+        _id: req.user._id,
+        role: req.user.role,
+      });
       next();
     } catch (error) {
-      console.error('Authentication error:', {
+      console.error("Authentication error:", {
         message: error.message,
         type: error.name,
-        token: token ? '***' : 'none'
+        token: token ? "[provided]" : "[missing]",
       });
-      
       res.status(401);
-      if (error.name === 'JsonWebTokenError') {
-        throw new Error('Invalid or malformed token');
-      } else if (error.name === 'TokenExpiredError') {
-        throw new Error('Token has expired - please login again');
+      if (error.name === "JsonWebTokenError") {
+        throw new Error("Invalid or malformed token");
+      } else if (error.name === "TokenExpiredError") {
+        throw new Error("Token has expired - please login again");
       } else {
-        throw new Error(error.message || 'Authentication failed');
+        throw new Error(error.message || "Authentication failed");
       }
     }
   } else {
+    console.error("No authorization header provided");
     res.status(401);
-    throw new Error('Authentication required - no token provided');
+    throw new Error("Authentication required - no token provided");
   }
 });
 
-// Middleware to check for admin role
 const admin = asyncHandler(async (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && req.user.role === "admin") {
+    console.log("Admin access granted:", req.user._id);
     next();
   } else {
+    console.error("Admin access denied:", req.user);
     res.status(403);
-    throw new Error('Not authorized as an admin');
+    throw new Error("Not authorized as an admin");
   }
 });
 
-// Middleware to check for employee role
-const employee = asyncHandler(async (req, res, next) => {
-  if (req.user && req.user.role === 'employee') {
-    next();
-  } else {
-    res.status(403);
-    throw new Error('Not authorized as an employee');
-  }
-});
-
-export { protect, admin, employee };
+export { protect, admin };

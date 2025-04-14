@@ -1,43 +1,30 @@
 import express from 'express';
 import { 
   protect, 
-  employee 
+  admin 
 } from '../middleware/authMiddleware.js';
 import {
-  getDashboardStats,
-  getMyAttendance,
-  applyForLeave,
-  getMyLeaves,
-  getSalaryDetails,
-  createStockRequest,
-  getMessSchedule,
-  getEmployeeProfile
+  getEmployees,
+  getEmployee,
+  createEmployee,
+  updateEmployee,
+  deleteEmployee
 } from '../controllers/employeeController.js';
 
 const router = express.Router();
 
-router.use(protect, employee);
+router.use(protect, admin);
 
-// Dashboard
-router.get('/dashboard', getDashboardStats);
+router.route('/register')
+  .post(protect, admin, createEmployee);
 
-// Profile
-router.get('/profile', getEmployeeProfile);
+router.route('/')
+  .get(getEmployees)
+  .post(createEmployee);
 
-// Attendance
-router.get('/attendance', getMyAttendance);
-
-// Leaves
-router.get('/leaves', getMyLeaves);
-router.post('/leaves', applyForLeave);
-
-// Salary
-router.get('/salary', getSalaryDetails);
-
-// Stock Requests
-router.post('/stock-requests', createStockRequest);
-
-// Mess
-router.get('/mess-schedule', getMessSchedule);
+router.route('/:id')
+  .get(getEmployee)
+  .put(updateEmployee)
+  .delete(deleteEmployee);
 
 export default router;

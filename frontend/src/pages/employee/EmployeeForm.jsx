@@ -2,29 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axiosConfig';
+import { useForm } from 'react-hook-form';
+import { toast } from 'react-toastify';
 
 const EmployeeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    username: '',
-    password: '',
-    phone: '',
-    address: '',
-    position: '',
-    department: '',
-    joiningDate: '',
-    salary: '',
-    emergencyContact: {
-      name: '',
-      relation: '',
-      phone: ''
-    }
-  });
+  const { register, handleSubmit, formState: { errors }, reset } = useForm();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -33,12 +18,11 @@ const EmployeeForm = () => {
       const fetchEmployee = async () => {
         try {
           const response = await api.get(`/api/employees/${id}`);
-          const employee = response.data.data;
-          setFormData({
+          const employee = response.data;
+          reset({
             firstName: employee.firstName,
             lastName: employee.lastName,
-            email: employee.userId.email,
-            username: employee.userId.username,
+            email: employee.email,
             phone: employee.phone,
             address: employee.address,
             position: employee.position,
@@ -57,43 +41,43 @@ const EmployeeForm = () => {
       };
       fetchEmployee();
     }
-  }, [id]);
+  }, [id, reset]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name.includes('emergencyContact.')) {
-      const field = name.split('.')[1];
-      setFormData({
-        ...formData,
-        emergencyContact: {
-          ...formData.emergencyContact,
-          [field]: value
-        }
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setLoading(true);
     setError(null);
 
     try {
+      const employeeData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        position: data.position,
+        department: data.department,
+        joiningDate: data.joiningDate,
+        salary: data.salary,
+        emergencyContact: {
+          name: data.emergencyContactName,
+          relation: data.emergencyContactRelation,
+          phone: data.emergencyContactPhone
+        },
+        hatchery: user.hatcheryName
+      };
+
       if (id && id !== 'new') {
-        // Update existing employee
-        await api.put(`/api/employees/${id}`, formData);
+        await api.put(`/api/employees/${id}`, employeeData);
+        toast.success('Employee updated successfully');
       } else {
-        // Create new employee
-        await api.post('/api/employees', formData);
+        await api.post('/api/employees', employeeData);
+        toast.success('Employee created successfully');
       }
-      navigate('/employees');
+      navigate('/admin/employees');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save employee');
+      setError(err.response?.data?.message || 'Failed to save employee');
+      toast.error(err.response?.data?.message || 'Failed to save employee');
+    } finally {
       setLoading(false);
     }
   };
@@ -110,64 +94,74 @@ const EmployeeForm = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white shadow rounded-lg p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h2 className="text-lg font-medium mb-4">Basic Information</h2>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="firstName">
-                First Name
+                First Name *
               </label>
               <input
                 type="text"
                 id="firstName"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
+                {...register("firstName", { required: "First name is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
-                required
               />
+              {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="lastName">
-                Last Name
+                Last Name *
               </label>
               <input
                 type="text"
                 id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
+                {...register("lastName", { required: "Last name is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
-                required
               />
+              {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2" htmlFor="email">
+                Email *
+              </label>
+              <input
+                type="email"
+                id="email"
+                {...register("email", { 
+                  required: "Email is required",
+                  pattern: {
+                    value: /^\S+@\S+$/i,
+                    message: "Invalid email address"
+                  }
+                })}
+                className="w-full px-3 py-2 border border-gray-300 rounded"
+              />
+              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="phone">
-                Phone
+                Phone *
               </label>
               <input
                 type="tel"
                 id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
+                {...register("phone", { required: "Phone is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
-                required
               />
+              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="address">
-                Address
+                Address *
               </label>
               <textarea
                 id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
+                {...register("address", { required: "Address is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
-                required
               />
+              {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>}
             </div>
           </div>
 
@@ -175,152 +169,97 @@ const EmployeeForm = () => {
             <h2 className="text-lg font-medium mb-4">Employment Details</h2>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="position">
-                Position
+                Position *
               </label>
               <input
                 type="text"
                 id="position"
-                name="position"
-                value={formData.position}
-                onChange={handleChange}
+                {...register("position", { required: "Position is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
-                required
               />
+              {errors.position && <p className="text-red-500 text-sm mt-1">{errors.position.message}</p>}
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="department">
-                Department
+                Department *
               </label>
               <input
                 type="text"
                 id="department"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
+                {...register("department", { required: "Department is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
-                required
               />
+              {errors.department && <p className="text-red-500 text-sm mt-1">{errors.department.message}</p>}
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="joiningDate">
-                Joining Date
+                Joining Date *
               </label>
               <input
                 type="date"
                 id="joiningDate"
-                name="joiningDate"
-                value={formData.joiningDate}
-                onChange={handleChange}
+                {...register("joiningDate", { required: "Joining date is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
-                required
               />
+              {errors.joiningDate && <p className="text-red-500 text-sm mt-1">{errors.joiningDate.message}</p>}
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="salary">
-                Salary
+                Salary *
               </label>
               <input
                 type="number"
                 id="salary"
-                name="salary"
-                value={formData.salary}
-                onChange={handleChange}
+                {...register("salary", { 
+                  required: "Salary is required",
+                  min: {
+                    value: 0,
+                    message: "Salary must be positive"
+                  }
+                })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
-                required
               />
+              {errors.salary && <p className="text-red-500 text-sm mt-1">{errors.salary.message}</p>}
             </div>
-          </div>
-
-          <div>
-            <h2 className="text-lg font-medium mb-4">Account Information</h2>
-            {(!id || id === 'new') && (
-              <>
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2" htmlFor="username">
-                    Username
-                  </label>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2" htmlFor="email">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2" htmlFor="password">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                    required={!id || id === 'new'}
-                  />
-                </div>
-              </>
-            )}
           </div>
 
           <div>
             <h2 className="text-lg font-medium mb-4">Emergency Contact</h2>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="emergencyContact.name">
-                Name
+                Name *
               </label>
               <input
                 type="text"
                 id="emergencyContact.name"
-                name="emergencyContact.name"
-                value={formData.emergencyContact.name}
-                onChange={handleChange}
+                {...register("emergencyContact.name", { required: "Emergency contact name is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
               />
+              {errors.emergencyContact?.name && <p className="text-red-500 text-sm mt-1">{errors.emergencyContact.name.message}</p>}
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="emergencyContact.relation">
-                Relation
+                Relation *
               </label>
               <input
                 type="text"
                 id="emergencyContact.relation"
-                name="emergencyContact.relation"
-                value={formData.emergencyContact.relation}
-                onChange={handleChange}
+                {...register("emergencyContact.relation", { required: "Emergency contact relation is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
               />
+              {errors.emergencyContact?.relation && <p className="text-red-500 text-sm mt-1">{errors.emergencyContact.relation.message}</p>}
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-2" htmlFor="emergencyContact.phone">
-                Phone
+                Phone *
               </label>
               <input
                 type="tel"
                 id="emergencyContact.phone"
-                name="emergencyContact.phone"
-                value={formData.emergencyContact.phone}
-                onChange={handleChange}
+                {...register("emergencyContact.phone", { required: "Emergency contact phone is required" })}
                 className="w-full px-3 py-2 border border-gray-300 rounded"
               />
+              {errors.emergencyContact?.phone && <p className="text-red-500 text-sm mt-1">{errors.emergencyContact.phone.message}</p>}
             </div>
           </div>
         </div>
@@ -328,7 +267,7 @@ const EmployeeForm = () => {
         <div className="mt-6 flex justify-end">
           <button
             type="button"
-            onClick={() => navigate('/employees')}
+            onClick={() => navigate('/admin/employees')}
             className="mr-4 px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
           >
             Cancel

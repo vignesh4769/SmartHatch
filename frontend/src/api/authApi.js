@@ -1,77 +1,64 @@
-import api from './config';
+import api from "./config";
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/auth` : '/api/auth';
+const API_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api/auth`
+  : "/api/auth";
 
-// Login user
-export const login = async (email, password) => {
+export const login = async (email, password, role) => {
   try {
-    const response = await api.post(`${API_URL}/login`, {
+    const response = await api.post(`${API_URL}/${role}/login`, {
       email,
-      password
+      password,
     });
-    
-    if (response.data.token) {
-      // Store the complete user data including token
-      localStorage.setItem('user', JSON.stringify(response.data));
+
+    if (response.data.user?.token) {
+      localStorage.setItem("user", JSON.stringify(response.data.user));
     }
     return response.data;
   } catch (error) {
-    if (error.response) {
-      throw new Error(error.response.data.error || 'Authentication failed');
-    }
-    throw new Error('Network error - please try again');
+    throw error.response?.data?.error || "Authentication failed";
   }
 };
 
-// Logout user
 export const logout = async () => {
   try {
     await api.post(`${API_URL}/logout`);
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error("Logout error:", error);
   }
-  // Remove user data which includes the token
-  localStorage.removeItem('user');
+  localStorage.removeItem("user");
 };
 
-// Register user
-export const register = async (userData) => {
-  const response = await api.post(`${API_URL}/register`, userData);
+export const signup = async (userData) => {
+  const response = await api.post(`${API_URL}/signup`, userData);
   return response.data;
 };
 
-// Get current user
-export const getCurrentUser = () => {
-  return JSON.parse(localStorage.getItem('user'));
-};
-
-// Verify email
-export const verifyEmail = async (token) => {
-  const response = await api.post(`${API_URL}/verify-email`, { token });
+export const registerEmployee = async (employeeData) => {
+  const response = await api.post(`${API_URL}/employee/register`, employeeData);
   return response.data;
 };
 
-// Forgot password
+export const getEmployees = async () => {
+  const response = await api.get(`${API_URL}/employees`);
+  return response.data;
+};
+
+export const verifyEmail = async (email, otp) => {
+  const response = await api.post(`${API_URL}/verify-email`, { email, otp });
+  return response.data;
+};
+
 export const forgotPassword = async (email) => {
   const response = await api.post(`${API_URL}/forgot-password`, { email });
   return response.data;
 };
 
-// Reset password
-export const resetPassword = async (token, password) => {
-  const response = await api.post(`${API_URL}/reset-password`, { 
-    token, 
-    password 
+export const resetPassword = async (email, otp, password) => {
+  const response = await api.post(`${API_URL}/reset-password`, {
+    email,
+    otp,
+    password,
   });
   return response.data;
-};
-
-export default {
-  login,
-  logout,
-  register,
-  getCurrentUser,
-  verifyEmail,
-  forgotPassword,
-  resetPassword
 };

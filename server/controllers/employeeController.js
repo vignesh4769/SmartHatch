@@ -1,295 +1,143 @@
 import Employee from '../models/Employee.js';
 import User from '../models/User.js';
-import Leave from '../models/Leave.js';
-import Attendance from '../models/Attendance.js';
-import StockRequest from '../models/StockRequest.js';
-import MessSchedule from '../models/Mess.js';
 import asyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
 import { generateEmployeeId } from '../utils/idGenerator.js';
 
-// @desc    Get all employees
-// @route   GET /api/admin/employees
+// @desc    Get all employees for a hatchery
+// @route   GET /api/employees
 // @access  Private/Admin
 export const getEmployees = asyncHandler(async (req, res) => {
+  const { hatchery } = req.query;
+  
+  if (!hatchery) {
+    return res.status(400).json({ 
+      success: false,
+      message: 'Hatchery name is required'
+    });
+  }
+
+  // Verify the requested hatchery matches the admin's hatchery
+  if (hatchery !== req.user.hatcheryName) {
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to access employees from this hatchery'
+    });
+  }
+
   try {
-    // Validate and parse pagination parameters
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 100);
-
-    // Destructure query parameters with defaults
-    const {
-      search = '',
-      department,
-      status
-    } = req.query;
-
-    // Build safe search query
-    const searchQuery = search.trim();
-    const searchConditions = searchQuery ? [
-      { employeeId: { $regex: searchQuery, $options: 'i' } },
-      { 'user.name': { $regex: searchQuery, $options: 'i' } },
-      { 'user.email': { $regex: searchQuery, $options: 'i' } },
-      { 'user.phone': { $regex: searchQuery, $options: 'i' } }
-    ] : [];
-
-    const query = {
-      deletedAt: null,
-      ...(searchQuery && { $or: searchConditions }),
-      ...(department && { department: department.trim() }),
-      ...(status && { status: status.trim() })
-    };
-
-    const [employees, count] = await Promise.all([
-      Employee.find(query)
-        .populate({
-          path: 'user',
-          select: 'name email phone',
-          options: { allowNotFound: true }
-        })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .sort({ createdAt: -1 })
-        .lean(),
-      Employee.countDocuments(query)
-    ]);
+    const employees = await Employee.find({ hatchery, deletedAt: null })
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
-      data: employees,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page,
-      totalRecords: count
+      data: employees
     });
   } catch (error) {
-    console.error('Error in getEmployees:', error);
+    console.error('Error fetching employees:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch employees',
-      details: error.message
+      message: 'Failed to fetch employees',
+      error: error.message
     });
   }
 });
 
-// @desc    Register a new employee (aligned with registration form)
-// @route   POST /api/admin/employees/register
+// @desc    Create a new employee
+// @route   POST /api/employees
 // @access  Private/Admin
 export const registerEmployee = asyncHandler(async (req, res) => {
-  // Required fields from registration form
-  const requiredFields = [
-    'firstName', 'lastName', 'email', 'phoneNumber', 'password',
-    'age', 'gender', 'address',
-    'department', 'position', 'shift',
-    'emergencyContact.name', 'emergencyContact.phone',
-    'employeeId', 'joinDate'
-  ];
+  // Alias for createEmployee to maintain backward compatibility
+  return createEmployee(req, res);
+});
 
-  const missingFields = requiredFields.filter(field => !req.body[field]);
-  if (missingFields.length > 0) {
-    res.status(400);
-    throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-  }
-
+export const createEmployee = asyncHandler(async (req, res) => {
   const {
     firstName,
     lastName,
     email,
-    phoneNumber,
-    password,
-    age,
-    gender,
+    phone,
     address,
-    department,
     position,
-    shift,
-    emergencyContact,
-    employeeId,
-    joinDate
+    department,
+    joiningDate,
+    salary,
+    emergencyContact
   } = req.body;
 
-  // Validate email format
-  const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-  if (!emailRegex.test(email)) {
-    res.status(400);
-    throw new Error('Please provide a valid email address');
+  // Validate required fields
+  if (!firstName || !lastName || !email || !phone || !address || 
+      !position || !department || !joiningDate || !salary || 
+      !emergencyContact?.name || !emergencyContact?.relation || !emergencyContact?.phone) {
+    return res.status(400).json({
+      success: false,
+      message: 'All fields are required'
+    });
   }
 
-  // Check if user exists
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    res.status(400);
-    throw new Error('Employee with this email already exists');
+  // Check if employee with this email already exists
+  const existingEmployee = await Employee.findOne({ email });
+  if (existingEmployee) {
+    return res.status(400).json({
+      success: false,
+      message: 'Employee with this email already exists'
+    });
   }
-
-  // Validate gender
-  if (!['Male', 'Female', 'Other'].includes(gender)) {
-    res.status(400);
-    throw new Error('Invalid gender value');
-  }
-
-  // Start transaction
-  const session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
-    // Create user
-    const [user] = await User.create([{
-      name,
+    // Create employee
+    const employee = await Employee.create({
+      firstName,
+      lastName,
       email,
-      phone: phoneNumber,
-      password,
-      role: 'employee',
-      caaNumber,
-      hatcheryName,
-      isVerified: false
-    }], { session });
-
-    // Create employee with fields from registration form
-    const [employee] = await Employee.create([{
-      user: user._id,
-      employeeId: generateEmployeeId(),
-      department,
-      position,
-      salary: Number(salary),
-      joiningDate: new Date(),
-      emergencyContact: {
-        name: emergencyContactName,
-        relation: emergencyContactRelation,
-        phone: emergencyContactPhone
-      },
+      phone,
       address,
-      age: Number(age),
-      gender,
-      shiftTimings,
-      status: 'active'
-    }], { session });
-
-    await session.commitTransaction();
-    session.endSession();
-
-    const createdEmployee = await Employee.findById(employee._id)
-      .populate('user', 'name email phone')
-      .lean();
+      position,
+      department,
+      joiningDate,
+      salary,
+      emergencyContact,
+      employeeId: generateEmployeeId(),
+      hatchery: req.user.hatcheryName // Set hatchery from admin user
+    });
 
     res.status(201).json({
       success: true,
-      message: 'Employee registered successfully',
-      data: createdEmployee
+      message: 'Employee created successfully',
+      data: employee
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    res.status(400).json({
+    console.error('Error creating employee:', error);
+    res.status(500).json({
       success: false,
-      error: error.message || 'Employee registration failed',
-      details: error.keyValue ? `Duplicate value for ${Object.keys(error.keyValue).join(', ')}` : null
+      message: 'Failed to create employee',
+      error: error.message
     });
   }
 });
 
-// @desc    Update employee (only fields from registration form)
-// @route   PUT /api/admin/employees/:id
+// @desc    Get single employee
+// @route   GET /api/employees/:id
 // @access  Private/Admin
-export const updateEmployee = asyncHandler(async (req, res) => {
-  const employee = await Employee.findById(req.params.id)
-    .populate('user')
-    .exec();
-
-  if (!employee || employee.deletedAt) {
-    res.status(404);
-    throw new Error('Employee not found');
-  }
-
-  const {
-    name,
-    email,
-    phoneNumber,
-    age,
-    gender,
-    address,
-    salary,
-    department,
-    position,
-    shiftTimings,
-    emergencyContactName,
-    emergencyContactPhone,
-    emergencyContactRelation,
-    status
-  } = req.body;
-
-  // Update user details if provided
-  if (name) employee.user.name = name;
-  if (email) employee.user.email = email;
-  if (phoneNumber) employee.user.phone = phoneNumber;
-  await employee.user.save();
-
-  // Update employee details
-  if (department) employee.department = department;
-  if (position) employee.position = position;
-  if (salary) employee.salary = Number(salary);
-  if (status) employee.status = status;
-  if (address) employee.address = address;
-  if (age) employee.age = Number(age);
-  if (gender) employee.gender = gender;
-  if (shiftTimings) employee.shiftTimings = shiftTimings;
-
-  // Update emergency contact details
-  if (emergencyContactName) employee.emergencyContact.name = emergencyContactName;
-  if (emergencyContactPhone) employee.emergencyContact.phone = emergencyContactPhone;
-  if (emergencyContactRelation) employee.emergencyContact.relation = emergencyContactRelation;
-
-  const updatedEmployee = await employee.save();
-
-  res.json({
-    success: true,
-    data: updatedEmployee
+export const getEmployee = asyncHandler(async (req, res) => {
+  const employee = await Employee.findOne({ 
+    _id: req.params.id,
+    deletedAt: null 
   });
-});
-
-// @desc    Delete employee (soft delete)
-// @route   DELETE /api/admin/employees/:id
-// @access  Private/Admin
-export const deleteEmployee = asyncHandler(async (req, res) => {
-  const { reason } = req.body;
-  const employee = await Employee.findById(req.params.id);
-
-  if (!employee || employee.deletedAt) {
-    res.status(404);
-    throw new Error('Employee not found');
-  }
-
-  if (!reason) {
-    res.status(400);
-    throw new Error('Please provide a reason for deletion');
-  }
-
-  // Soft delete employee
-  employee.deletedAt = new Date();
-  employee.status = 'inactive';
-  employee.deletionReason = reason;
-  await employee.save();
-
-  // Also deactivate the associated user account
-  await User.findByIdAndUpdate(employee.user, { isActive: false });
-
-  res.json({
-    success: true,
-    message: 'Employee deactivated successfully'
-  });
-});
-
-// @desc    Get employee profile
-// @route   GET /api/employee/profile
-// @access  Private/Employee
-export const getEmployeeProfile = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id })
-    .populate('user', 'name email phone')
-    .select('-deletedAt -deletionReason')
-    .lean();
 
   if (!employee) {
-    res.status(404);
-    throw new Error('Employee profile not found');
+    return res.status(404).json({
+      success: false,
+      message: 'Employee not found'
+    });
+  }
+
+  // Verify the employee belongs to the admin's hatchery
+  if (employee.hatchery !== req.user.hatcheryName) {
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to access this employee'
+    });
   }
 
   res.json({
@@ -298,169 +146,117 @@ export const getEmployeeProfile = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Apply for leave
-// @route   POST /api/employee/leaves
-// @access  Private/Employee
-export const applyForLeave = asyncHandler(async (req, res) => {
-  const { startDate, endDate, reason, type } = req.body;
-
-  if (!startDate || !endDate || !reason || !type) {
-    res.status(400);
-    throw new Error('Please provide all required fields');
-  }
-
-  const employee = await Employee.findOne({ user: req.user._id });
-  if (!employee) {
-    res.status(404);
-    throw new Error('Employee not found');
-  }
-
-  const leave = await Leave.create({
-    employee: employee._id,
-    startDate,
-    endDate,
-    reason,
-    type,
-    status: 'pending'
+// @desc    Update employee
+// @route   PUT /api/employees/:id
+// @access  Private/Admin
+export const updateEmployee = asyncHandler(async (req, res) => {
+  const employee = await Employee.findOne({ 
+    _id: req.params.id,
+    deletedAt: null 
   });
-
-  res.status(201).json({
-    success: true,
-    message: 'Leave application submitted successfully',
-    data: leave
-  });
-});
-
-// @desc    Get employee's leaves
-// @route   GET /api/employee/leaves
-// @access  Private/Employee
-export const getMyLeaves = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id });
-  if (!employee) {
-    res.status(404);
-    throw new Error('Employee not found');
-  }
-
-  const leaves = await Leave.find({ employee: employee._id })
-    .sort({ createdAt: -1 });
-
-  res.json({
-    success: true,
-    data: leaves
-  });
-});
-
-// @desc    Get employee's attendance
-// @route   GET /api/employee/attendance
-// @access  Private/Employee
-export const getMyAttendance = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id });
-  if (!employee) {
-    res.status(404);
-    throw new Error('Employee not found');
-  }
-
-  const attendance = await Attendance.find({ employee: employee._id })
-    .sort({ date: -1 });
-
-  res.json({
-    success: true,
-    data: attendance
-  });
-});
-
-// @desc    Get employee's salary details
-// @route   GET /api/employee/salary
-// @access  Private/Employee
-export const getSalaryDetails = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id })
-    .populate('salary');
 
   if (!employee) {
-    res.status(404);
-    throw new Error('Employee not found');
+    return res.status(404).json({
+      success: false,
+      message: 'Employee not found'
+    });
   }
 
-  res.json({
-    success: true,
-    data: employee.salary
-  });
+  // Verify the employee belongs to the admin's hatchery
+  if (employee.hatchery !== req.user.hatcheryName) {
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to update this employee'
+    });
+  }
+
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    address,
+    position,
+    department,
+    joiningDate,
+    salary,
+    emergencyContact
+  } = req.body;
+
+  // Update employee fields
+  employee.firstName = firstName || employee.firstName;
+  employee.lastName = lastName || employee.lastName;
+  employee.email = email || employee.email;
+  employee.phone = phone || employee.phone;
+  employee.address = address || employee.address;
+  employee.position = position || employee.position;
+  employee.department = department || employee.department;
+  employee.joiningDate = joiningDate || employee.joiningDate;
+  employee.salary = salary || employee.salary;
+  
+  if (emergencyContact) {
+    employee.emergencyContact = {
+      name: emergencyContact.name || employee.emergencyContact.name,
+      relation: emergencyContact.relation || employee.emergencyContact.relation,
+      phone: emergencyContact.phone || employee.emergencyContact.phone
+    };
+  }
+
+  try {
+    const updatedEmployee = await employee.save();
+    res.json({
+      success: true,
+      message: 'Employee updated successfully',
+      data: updatedEmployee
+    });
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update employee',
+      error: error.message
+    });
+  }
 });
 
-// @desc    Create stock request
-// @route   POST /api/employee/stock-requests
-// @access  Private/Employee
-export const createStockRequest = asyncHandler(async (req, res) => {
-  const { items, urgency, notes } = req.body;
+// @desc    Delete employee (soft delete)
+// @route   DELETE /api/employees/:id
+// @access  Private/Admin
+export const deleteEmployee = asyncHandler(async (req, res) => {
+  const employee = await Employee.findOne({ 
+    _id: req.params.id,
+    deletedAt: null 
+  });
 
-  if (!items || !items.length) {
-    res.status(400);
-    throw new Error('Please provide items for the stock request');
-  }
-
-  const employee = await Employee.findOne({ user: req.user._id });
   if (!employee) {
-    res.status(404);
-    throw new Error('Employee not found');
+    return res.status(404).json({
+      success: false,
+      message: 'Employee not found'
+    });
   }
 
-  const stockRequest = await StockRequest.create({
-    employee: employee._id,
-    items,
-    urgency,
-    notes,
-    status: 'pending'
-  });
-
-  res.status(201).json({
-    success: true,
-    message: 'Stock request created successfully',
-    data: stockRequest
-  });
-});
-
-// @desc    Get mess schedule
-// @route   GET /api/employee/mess-schedule
-// @access  Private/Employee
-export const getMessSchedule = asyncHandler(async (req, res) => {
-  const schedule = await MessSchedule.find()
-    .sort({ date: 1 })
-    .limit(7);
-
-  res.json({
-    success: true,
-    data: schedule
-  });
-});
-
-// @desc    Get employee dashboard stats
-// @route   GET /api/employee/dashboard
-// @access  Private/Employee
-export const getDashboardStats = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ user: req.user._id });
-  if (!employee) {
-    res.status(404);
-    throw new Error('Employee not found');
+  // Verify the employee belongs to the admin's hatchery
+  if (employee.hatchery !== req.user.hatcheryName) {
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to delete this employee'
+    });
   }
 
-  // Get recent attendance records
-  const recentAttendance = await Attendance.find({ employee: employee._id })
-    .sort({ date: -1 })
-    .limit(7);
-
-  // Get leave statistics
-  const leaves = await Leave.find({ employee: employee._id });
-  const leaveStats = {
-    approved: leaves.filter(l => l.status === 'approved').length,
-    pending: leaves.filter(l => l.status === 'pending').length,
-    rejected: leaves.filter(l => l.status === 'rejected').length
-  };
-
-  res.json({
-    success: true,
-    data: {
-      recentAttendance,
-      leaveStats
-    }
-  });
+  try {
+    employee.deletedAt = new Date();
+    await employee.save();
+    
+    res.json({
+      success: true,
+      message: 'Employee deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting employee:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete employee',
+      error: error.message
+    });
+  }
 });

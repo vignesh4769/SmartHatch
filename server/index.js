@@ -6,7 +6,7 @@ import { errorHandler } from './middleware/errorMiddleware.js';
 import { protect } from './middleware/authMiddleware.js';
 
 // Route imports
-import authRoutes from './routes/auth.js';
+import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/admin.js';
 import employeeRoutes from './routes/employee.js';
 import runRoutes from './routes/run.js';
