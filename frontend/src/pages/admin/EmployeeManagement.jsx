@@ -56,7 +56,10 @@ const EmployeeManagement = () => {
         <div className="flex flex-col space-y-6">
           {/* Header Section */}
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-800">Employee Management</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">Employee Management</h1>
+              <p className="text-gray-500">{employees.length} employees</p>
+            </div>
             <button
               onClick={() => navigate('/admin/employees/new')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200"

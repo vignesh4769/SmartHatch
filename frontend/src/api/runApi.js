@@ -48,9 +48,9 @@ export const updateRun = async (runId, runData) => {
 };
 
 // Delete run
-export const deleteRun = async (runId) => {
+export const deleteRun = async (runId, reason) => {
   try {
-    const response = await api.delete(`${API_URL}/${runId}`);
+    const response = await api.delete(`${API_URL}/${runId}`, { data: { reason } });
     return response.data;
   } catch (error) {
     throw error.response?.data || { error: 'Failed to delete run' };
@@ -58,9 +58,9 @@ export const deleteRun = async (runId) => {
 };
 
 // Add employee to run
-export const addEmployeeToRun = async (runId, employeeId) => {
+export const addEmployeeToRun = async (runId, employeeData) => {
   try {
-    const response = await api.post(`${API_URL}/${runId}/employees`, { employeeId });
+    const response = await api.post(`${API_URL}/${runId}/employees`, employeeData);
     return response.data;
   } catch (error) {
     throw error.response?.data || { error: 'Failed to add employee to run' };
@@ -78,9 +78,9 @@ export const removeEmployeeFromRun = async (runId, employeeId) => {
 };
 
 // Update run status
-export const updateRunStatus = async (runId, status) => {
+export const updateRunStatus = async (runId, statusData) => {
   try {
-    const response = await api.patch(`${API_URL}/${runId}/status`, { status });
+    const response = await api.put(`${API_URL}/${runId}/status`, statusData);
     return response.data;
   } catch (error) {
     throw error.response?.data || { error: 'Failed to update run status' };

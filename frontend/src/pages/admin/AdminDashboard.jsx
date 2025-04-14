@@ -35,10 +35,10 @@ const AdminDashboard = () => {
 
         // Fetch employee count
         const employeeRes = await api.get("/api/admin/employees", { params: { hatchery: user.hatcheryName } });
-        if (!employeeRes?.data) {
+        if (!employeeRes?.data?.data) {
           throw new Error("Invalid response format from employees endpoint");
         }
-        const employeeCount = employeeRes.data.length;
+        const employeeCount = Array.isArray(employeeRes.data.data) ? employeeRes.data.data.length : 0;
 
         // Fetch other dashboard stats
         const dashboardRes = await api.get("/api/admin/dashboard-stats");

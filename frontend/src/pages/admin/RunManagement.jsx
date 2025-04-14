@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import RunForm from "../../components/admin/RunForm";
-import { createRun } from "../../api/runApi";
-import { getRuns, endRun } from "../../api/adminApi";
+import { createRun, getRuns, updateRunStatus, getRunById } from "../../api/runApi";
 import { toast } from "react-toastify";
 
 const RunManagement = () => {
@@ -15,11 +14,11 @@ const RunManagement = () => {
     const fetchRuns = async () => {
       try {
         const data = await getRuns();
-        setRuns(data);
-        const activeRun = data.find(run => run.status === 'active');
+        setRuns(data.runs);
+        const activeRun = data.runs.find(run => run.status === 'in-progress');
         setCurrentRun(activeRun || null);
       } catch (error) {
-        toast.error(error.message);
+        toast.error(error.error || "Failed to fetch runs");
       }
     };
     fetchRuns();
@@ -29,12 +28,12 @@ const RunManagement = () => {
     setLoading(true);
     try {
       const newRun = await createRun(runData);
-      setRuns([...runs, newRun]);
-      setCurrentRun(newRun);
+      setRuns([...runs, newRun.run]);
+      setCurrentRun(newRun.run);
       setIsFormOpen(false);
       toast.success('Run created successfully');
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.error || "Failed to create run");
     } finally {
       setLoading(false);
     }
@@ -42,29 +41,34 @@ const RunManagement = () => {
 
   const handleEndRun = async () => {
     try {
-      await endRun(currentRun._id);
+      await updateRunStatus(currentRun._id, { status: 'completed' });
       setCurrentRun(null);
+      const updatedRuns = await getRuns();
+      setRuns(updatedRuns.runs);
       toast.success('Run ended successfully');
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.error || "Failed to end run");
     }
   };
 
-  const handleRunDetails = (run) => {
-    // Here you can load specific details of each run.
-    // For this example, we will just display a simple message.
-    setSelectedRunDetails(`Details of ${run}`);
+  const handleRunDetails = async (run) => {
+    try {
+      const details = await getRunById(run._id);
+      setSelectedRunDetails(details.run);
+    } catch (error) {
+      toast.error(error.error || "Failed to fetch run details");
+    }
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gray-100 ml-48">
+    <div className="min-h-screen p-6 bg-gray-100 ml-56">
       <header className="bg-white p-4 rounded-lg shadow mb-5">
         <h2 className="text-2xl font-bold">Run Management</h2>
       </header>
 
       <div className="bg-white p-6 rounded-lg shadow">
         <h3 className="text-lg font-semibold mb-4">
-          Current Run: {currentRun ? currentRun.name : "No Active Run"}
+          Current Run: {currentRun ? currentRun.runNumber : "No Active Run"}
         </h3>
         <div className="flex gap-4">
           <button
@@ -83,10 +87,9 @@ const RunManagement = () => {
         </div>
       </div>
 
-      {/* Run Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Create New Run</h3>
               <button 
@@ -107,23 +110,37 @@ const RunManagement = () => {
       <div className="mt-6 bg-white p-6 rounded-lg shadow">
         <h3 className="text-lg font-semibold mb-4">Previous Runs</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {runs.map((run, index) => (
+          {runs.map((run) => (
             <button
-              key={index}
+              key={run._id}
               className="bg-blue-500 text-white px-4 py-2 rounded-lg"
               onClick={() => handleRunDetails(run)}
             >
-              {run.name}
+              {run.runNumber}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Display Details of the Selected Run */}
       {selectedRunDetails && (
         <div className="mt-6 bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4">Run Details</h3>
-          <p>{selectedRunDetails}</p>
+          <p><strong>Run Number:</strong> {selectedRunDetails.runNumber}</p>
+          <p><strong>Status:</strong> {selectedRunDetails.status}</p>
+          <p><strong>Start Date:</strong> {new Date(selectedRunDetails.startDate).toLocaleDateString()}</p>
+          <p><strong>Expected End Date:</strong> {new Date(selectedRunDetails.expectedEndDate).toLocaleDateString()}</p>
+          {selectedRunDetails.actualEndDate && (
+            <p><strong>Actual End Date:</strong> {new Date(selectedRunDetails.actualEndDate).toLocaleDateString()}</p>
+          )}
+          <p><strong>Budget:</strong> ${selectedRunDetails.financials.budget}</p>
+          <p><strong>Assigned Employees:</strong></p>
+          <ul>
+            {selectedRunDetails.assignedEmployees.map((assignment) => (
+              <li key={assignment.employee._id}>
+                {assignment.employee.firstName} {assignment.employee.lastName} ({assignment.role}, {assignment.shift})
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

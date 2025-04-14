@@ -7,7 +7,7 @@ import PrivateRoute from "./PrivateRoute";
 
 // Lazy-loaded components for better performance
 const Login = React.lazy(() => import("../pages/Auth/Login"));
-const Signup = React.lazy(() => import("../pages/Auth/Signup"));
+const Signup = React.lazy(() => import("../pages/Auth/SignUp"));
 const ForgotPassword = React.lazy(() => import("../pages/Auth/ForgotPassword"));
 
 // Admin Pages
@@ -17,7 +17,7 @@ const AdminDashboard = React.lazy(() =>
 const EmployeeManagement = React.lazy(() =>
   import("../pages/admin/EmployeeManagement")
 );
-const RunManagement = React.lazy(() => import("../pages/admin/RunManagement"));
+const RunManagement = React.lazy(() => import("../pages/admin/RunManagement.jsx"));
 const AttendanceManagement = React.lazy(() =>
   import("../pages/admin/AttendanceManagement")
 );

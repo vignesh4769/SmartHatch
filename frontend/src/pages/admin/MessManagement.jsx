@@ -67,7 +67,7 @@ const MessManagement = () => {
   };
 
   return (
-    <div className="pt-20 pl-56 pr-6 pb-10 min-h-screen bg-gray-50">
+    <div className="pt-20 pl-56 pr-6 pb-10 min-h-screen bg-gray-50 ">
       <h2 className="text-3xl font-bold mb-2 text-center text-gray-800">Mess Management</h2>
       <p className="text-center text-gray-600 mb-8">Manage daily food schedules for employees.</p>
 

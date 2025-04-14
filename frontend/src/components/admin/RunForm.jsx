@@ -1,15 +1,30 @@
+// src/components/admin/RunForm.jsx
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import InputField from '../common/InputField';
 import Button from '../common/Button';
+import Select from 'react-select';
 import employeeAPI from '../../api/employeeAPI';
-import MultiSelect from '../common/MultiSelect';
 
 const RunForm = ({ onSubmit, initialData, loading }) => {
-  const { register, handleSubmit, formState: { errors }, control } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    control,
+    setValue,
+    getValues
+  } = useForm({
     defaultValues: initialData || {
+      runNumber: '',
+      description: '',
       startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      expectedEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      hatchery: '',
+      financials: {
+        budget: 0
+      },
+      assignedEmployees: []
     }
   });
 
@@ -21,12 +36,15 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
     const fetchEmployees = async () => {
       setFetchingEmployees(true);
       try {
-        const { data } = await employeeAPI.getEmployees();
-        setEmployees(data.employees);
+        const response = await employeeAPI.getEmployees();
+        const hatcheryEmployees = response.employees.filter(
+          emp => !initialData?.hatchery || emp.hatchery === initialData.hatchery
+        );
+        setEmployees(hatcheryEmployees);
         setEmployeeOptions(
-          data.employees.map(emp => ({
+          hatcheryEmployees.map(emp => ({
             value: emp._id,
-            label: `${emp.employeeId} - ${emp.user.name} (${emp.designation})`
+            label: `${emp.employeeId} - ${emp.firstName} ${emp.lastName} (${emp.position})`
           }))
         );
       } catch (error) {
@@ -37,16 +55,41 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
     };
 
     fetchEmployees();
-  }, []);
+  }, [initialData?.hatchery]);
+
+  const handleEmployeeChange = (selectedOptions) => {
+    const updatedAssignments = selectedOptions.map(option => {
+      const existing = (initialData?.assignedEmployees || []).find(
+        assignment => assignment.employee === option.value
+      );
+      return {
+        employee: option.value,
+        role: existing?.role || '',
+        shift: existing?.shift || ''
+      };
+    });
+    setValue('assignedEmployees', updatedAssignments, { shouldValidate: true });
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form
+      onSubmit={handleSubmit(data => {
+        onSubmit({
+          ...data,
+          budget: parseFloat(data.financials.budget),
+          assignedEmployees: data.assignedEmployees.filter(
+            assignment => assignment.employee && assignment.role && assignment.shift
+          )
+        });
+      })}
+      className="space-y-4"
+    >
       <InputField
-        label="Run Name"
-        id="name"
+        label="Run Number"
+        id="runNumber"
         type="text"
-        {...register('name', { required: 'Run name is required' })}
-        error={errors.name}
+        {...register('runNumber', { required: 'Run number is required' })}
+        error={errors.runNumber?.message}
       />
 
       <InputField
@@ -58,28 +101,41 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
         rows={2}
       />
 
+      <InputField
+        label="Hatchery"
+        id="hatchery"
+        type="text"
+        {...register('hatchery', { required: 'Hatchery is required' })}
+        error={errors.hatchery?.message}
+      />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <InputField
           label="Start Date"
           id="startDate"
           type="date"
-          {...register('startDate', { required: 'Start date is required' })}
-          error={errors.startDate}
+          {...register('startDate', {
+            required: 'Start date is required',
+            validate: value => {
+              const endDate = getValues('expectedEndDate');
+              return new Date(value) <= new Date(endDate) || 'Start date must be before end date';
+            }
+          })}
+          error={errors.startDate?.message}
         />
 
         <InputField
-          label="End Date"
-          id="endDate"
+          label="Expected End Date"
+          id="expectedEndDate"
           type="date"
-          {...register('endDate', { 
+          {...register('expectedEndDate', {
             required: 'End date is required',
             validate: value => {
-              const startDate = new Date(control._formValues.startDate);
-              const endDate = new Date(value);
-              return endDate > startDate || 'End date must be after start date';
+              const startDate = getValues('startDate');
+              return new Date(value) >= new Date(startDate) || 'End date must be after start date';
             }
           })}
-          error={errors.endDate}
+          error={errors.expectedEndDate?.message}
         />
       </div>
 
@@ -87,36 +143,106 @@ const RunForm = ({ onSubmit, initialData, loading }) => {
         label="Budget (₹)"
         id="budget"
         type="number"
-        {...register('budget', { 
+        step="0.01"
+        {...register('financials.budget', {
           required: 'Budget is required',
           min: {
             value: 0,
             message: 'Budget must be positive'
           }
         })}
-        error={errors.budget}
+        error={errors.financials?.budget?.message}
       />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Assign Employees
         </label>
-        <MultiSelect
-          options={employeeOptions}
-          isLoading={fetchingEmployees}
-          {...register('employeeIds', { required: 'At least one employee is required' })}
-          error={errors.employeeIds}
+        <Controller
+          name="assignedEmployees"
+          control={control}
+          rules={{
+            validate: value => value.length > 0 || 'At least one employee is required'
+          }}
+          render={({ field }) => (
+            <Select
+              isMulti
+              options={employeeOptions}
+              isLoading={fetchingEmployees}
+              onChange={selected => handleEmployeeChange(selected || [])}
+              value={employeeOptions.filter(option =>
+                field.value.some(assignment => assignment.employee === option.value)
+              )}
+              placeholder="Select employees..."
+              classNamePrefix="react-select"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  borderColor: errors.assignedEmployees ? '#dc2626' : base.borderColor,
+                  '&:hover': {
+                    borderColor: errors.assignedEmployees ? '#dc2626' : base['&:hover'].borderColor
+                  }
+                })
+              }}
+            />
+          )}
         />
-        {errors.employeeIds && (
-          <p className="mt-2 text-sm text-red-600">{errors.employeeIds.message}</p>
+        {errors.assignedEmployees && (
+          <p className="mt-2 text-sm text-red-600">{errors.assignedEmployees.message}</p>
         )}
+
+        {getValues('assignedEmployees')?.map((assignment, index) => (
+          <div key={assignment.employee} className="mt-2 p-4 border rounded-lg">
+            <p className="font-medium">
+              {employeeOptions.find(opt => opt.value === assignment.employee)?.label || 'Unknown Employee'}
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-2">
+              <InputField
+                label="Role"
+                id={`assignedEmployees.${index}.role`}
+                type="text"
+                {...register(`assignedEmployees.${index}.role`, {
+                  required: 'Role is required'
+                })}
+                error={errors.assignedEmployees?.[index]?.role?.message}
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Shift
+                </label>
+                <select
+                  {...register(`assignedEmployees.${index}.shift`, {
+                    required: 'Shift is required'
+                  })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                >
+                  <option value="">Select shift</option>
+                  <option value="morning">Morning</option>
+                  <option value="afternoon">Afternoon</option>
+                  <option value="night">Night</option>
+                </select>
+                {errors.assignedEmployees?.[index]?.shift && (
+                  <p className="mt-2 text-sm text-red-600">
+                    {errors.assignedEmployees[index].shift.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="pt-4">
-        <Button type="submit" loading={loading}>
-          {initialData ? 'Update Run' : 'Create Run'}
-        </Button>
-      </div>
+      <div className="pt-4 flex justify-end">
+      <Button 
+  type="submit" 
+  loading={loading}
+  className="w-full sm:w-auto px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+>
+  {`${initialData ? 'Update Run' : 'Create Run'} Submit`}
+</Button>
+
+</div>
+
     </form>
   );
 };
