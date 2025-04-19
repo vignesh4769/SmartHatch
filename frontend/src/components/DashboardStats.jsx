@@ -81,12 +81,6 @@ const DashboardStats = () => {
           icon={FiUserMinus}
           color="bg-red-500"
         />
-        <StatCard
-          title="Active Runs"
-          value={stats.activeRuns}
-          icon={FiActivity}
-          color="bg-purple-500"
-        />
       </div>
 
       {stats.recentEmployees && stats.recentEmployees.length > 0 && (

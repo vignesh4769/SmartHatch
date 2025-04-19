@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
@@ -8,6 +8,31 @@ import { toast } from 'react-toastify';
 const MessManagement = () => {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+
+  // Add a test schedule on component mount
+  useEffect(() => {
+    const createTestSchedule = async () => {
+      try {
+        const testSchedule = {
+          date: selectedDate,
+          mealType: 'breakfast',
+          menu: [
+            { name: 'Idli', category: 'breakfast', cost: 0 },
+            { name: 'Sambar', category: 'breakfast', cost: 0 },
+            { name: 'Chutney', category: 'breakfast', cost: 0 }
+          ],
+          startTime: '08:00',
+          endTime: '10:00'
+        };
+        await messApi.createMessSchedule(testSchedule);
+        queryClient.invalidateQueries({ queryKey: ['messSchedules', selectedDate] });
+      } catch (error) {
+        console.error('Error creating test schedule:', error);
+      }
+    };
+
+    createTestSchedule();
+  }, []);
 
   const { data: schedules, isLoading } = useQuery({
     queryKey: ['messSchedules', selectedDate],
@@ -24,7 +49,7 @@ const MessManagement = () => {
   const createScheduleMutation = useMutation({
     mutationFn: messApi.createMessSchedule,
     onSuccess: () => {
-      queryClient.invalidateQueries(['messSchedules']);
+      queryClient.invalidateQueries({ queryKey: ['messSchedules', selectedDate] });
       toast.success('Meal schedule created successfully');
       reset();
     },
@@ -33,21 +58,10 @@ const MessManagement = () => {
     },
   });
 
-  const updateScheduleMutation = useMutation({
-    mutationFn: ({ id, data }) => messApi.updateMessSchedule(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['messSchedules']);
-      toast.success('Meal schedule updated successfully');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to update meal schedule');
-    },
-  });
-
   const deleteScheduleMutation = useMutation({
     mutationFn: messApi.deleteMessSchedule,
     onSuccess: () => {
-      queryClient.invalidateQueries(['messSchedules']);
+      queryClient.invalidateQueries({ queryKey: ['messSchedules', selectedDate] });
       toast.success('Meal schedule deleted successfully');
     },
     onError: (error) => {
@@ -56,10 +70,18 @@ const MessManagement = () => {
   });
 
   const onSubmit = (data) => {
+    const menuItems = data.menu.split('\n')
+      .filter(item => item.trim())
+      .map(item => ({
+        name: item.trim(),
+        category: data.mealType,
+        cost: 0
+      }));
+
     const payload = {
       date: selectedDate,
       mealType: data.mealType,
-      menu: data.menu.split('\n').filter(item => item.trim()),
+      menu: menuItems,
       startTime: data.startTime,
       endTime: data.endTime
     };
@@ -67,7 +89,7 @@ const MessManagement = () => {
   };
 
   return (
-    <div className="pt-20 pl-56 pr-6 pb-10 min-h-screen bg-gray-50 ">
+    <div className="pt-20 pl-56 pr-6 pb-10 min-h-screen bg-gray-50">
       <h2 className="text-3xl font-bold mb-2 text-center text-gray-800">Mess Management</h2>
       <p className="text-center text-gray-600 mb-8">Manage daily food schedules for employees.</p>
 
@@ -75,15 +97,15 @@ const MessManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="text-sm text-gray-500">Total Meals Served</div>
-          <div className="text-2xl font-bold">{stats?.totalMeals || 0}</div>
+          <div className="text-2xl font-bold">{stats?.data?.totalMeals || 0}</div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="text-sm text-gray-500">Today's Attendance</div>
-          <div className="text-2xl font-bold">{stats?.todayAttendance || 0}</div>
+          <div className="text-2xl font-bold">{stats?.data?.todayAttendance || 0}</div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="text-sm text-gray-500">Special Requests</div>
-          <div className="text-2xl font-bold">{stats?.specialRequests || 0}</div>
+          <div className="text-2xl font-bold">{stats?.data?.specialRequests || 0}</div>
         </div>
       </div>
 
@@ -115,21 +137,18 @@ const MessManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {Array.isArray(schedules) && schedules.map(schedule => (
+                {Array.isArray(schedules?.data) && schedules.data.map(schedule => (
                   <tr key={schedule._id}>
-                    <td>{schedule.mealType}</td>
-                    <td>{schedule.menu}</td>
-                    <td>{schedule.time}</td>
-                    <td className="flex gap-2">
-                      <button
-                        className="btn btn-sm btn-warning"
-                        onClick={() => updateScheduleMutation.mutate({
-                          id: schedule._id,
-                          data: { ...schedule, status: 'modified' }
-                        })}
-                      >
-                        Edit
-                      </button>
+                    <td className="capitalize">{schedule.meal}</td>
+                    <td>
+                      <ul className="list-disc list-inside">
+                        {schedule.menu.map((item, index) => (
+                          <li key={index}>{item.name}</li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td>{schedule.startTime} - {schedule.endTime}</td>
+                    <td>
                       <button
                         className="btn btn-sm btn-error"
                         onClick={() => deleteScheduleMutation.mutate(schedule._id)}
@@ -168,13 +187,23 @@ const MessManagement = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-            <input
-              type="time"
-              {...register('time', { required: 'Time is required' })}
-              className="input input-bordered w-full"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+              <input
+                type="time"
+                {...register('startTime', { required: 'Start time is required' })}
+                className="input input-bordered w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+              <input
+                type="time"
+                {...register('endTime', { required: 'End time is required' })}
+                className="input input-bordered w-full"
+              />
+            </div>
           </div>
 
           <button

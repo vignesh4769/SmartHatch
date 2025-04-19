@@ -5,26 +5,23 @@ import {
 } from '../middleware/authMiddleware.js';
 import {
   getEmployees,
-  getEmployee,
-  createEmployee,
+  registerEmployee,
   updateEmployee,
   deleteEmployee
 } from '../controllers/employeeController.js';
 
 const router = express.Router();
 
-router.use(protect, admin);
+// Get all employees for a hatchery
+router.get('/', protect, admin, getEmployees);
 
-router.route('/register')
-  .post(protect, admin, createEmployee);
+// Register a new employee
+router.post('/', registerEmployee);
 
-router.route('/')
-  .get(getEmployees)
-  .post(protect, admin, createEmployee);
+// Update employee
+router.put('/:employeeId', protect, admin, updateEmployee);
 
-router.route('/:id')
-  .get(getEmployee)
-  .put(updateEmployee)
-  .delete(deleteEmployee);
+// Delete employee
+router.delete('/:employeeId', protect, admin, deleteEmployee);
 
 export default router;

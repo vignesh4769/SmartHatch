@@ -6,11 +6,11 @@ import {
   forgotPassword,
   resetPassword,
   logout,
-  registerEmployee,
   getEmployees,
   getAdminEmployees,
-  getDashboardStats,
 } from "../controllers/authController.js";
+import { registerEmployee } from "../controllers/employeeController.js";
+import { getDashboardStats, getEmployeeDetails } from "../controllers/adminController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -27,6 +27,7 @@ router.post("/logout", logout);
 // Admin-only routes
 router.post("/admin/employee/register", protect, admin, registerEmployee);
 router.get("/admin/employees", protect, admin, getAdminEmployees);
+router.get("/admin/employees/:id", protect, admin, getEmployeeDetails);
 router.get("/admin/dashboard-stats", protect, admin, getDashboardStats);
 
 export default router;

@@ -24,4 +24,9 @@ router.route('/schedule/:id')
 // Mess statistics
 router.get('/stats', admin, getMessStats);
 
+// Placeholder routes for mess management
+router.get('/', protect, (req, res) => {
+  res.json({ message: 'Mess routes will be implemented soon' });
+});
+
 export default router;

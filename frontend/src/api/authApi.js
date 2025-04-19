@@ -14,6 +14,7 @@ export const login = async (email, password, role) => {
     if (response.data.user?.token) {
       localStorage.setItem("user", JSON.stringify(response.data.user));
     }
+
     return response.data;
   } catch (error) {
     throw error.response?.data?.error || "Authentication failed";
@@ -26,59 +27,46 @@ export const logout = async () => {
   } catch (error) {
     console.error("Logout error:", error);
   }
+
   localStorage.removeItem("user");
 };
 
 export const signup = async (userData) => {
-  const response = await api.post(`${API_URL}/signup`, userData);
-  return response.data;
-};
-
-export const registerEmployee = async (employeeData) => {
   try {
-    const user = JSON.parse(localStorage.getItem('user'));
-    const response = await api.post('/api/auth/admin/employee/register', employeeData, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${user?.token}`
-      }
-    });
+    const response = await api.post(`${API_URL}/signup`, userData);
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.error || 'Registration failed');
+    throw error.response?.data?.error || "Signup failed";
   }
 };
 
-export const getEmployees = async () => {
-  const response = await api.get(`${API_URL}/employees`);
-  return response.data;
-};
-
-export const getEmployeeById = async (id) => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  const response = await api.get(`/api/admin/employees/${id}`, {
-    headers: {
-      'Authorization': `Bearer ${user?.token}`
-    }
-  });
-  return response.data;
-};
-
 export const verifyEmail = async (email, otp) => {
-  const response = await api.post(`${API_URL}/verify-email`, { email, otp });
-  return response.data;
+  try {
+    const response = await api.post(`${API_URL}/verify-email`, { email, otp });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.error || "OTP verification failed";
+  }
 };
 
 export const forgotPassword = async (email) => {
-  const response = await api.post(`${API_URL}/forgot-password`, { email });
-  return response.data;
+  try {
+    const response = await api.post(`${API_URL}/forgot-password`, { email });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.error || "Forgot password failed";
+  }
 };
 
 export const resetPassword = async (email, otp, password) => {
-  const response = await api.post(`${API_URL}/reset-password`, {
-    email,
-    otp,
-    password,
-  });
-  return response.data;
+  try {
+    const response = await api.post(`${API_URL}/reset-password`, {
+      email,
+      otp,
+      password,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.error || "Reset password failed";
+  }
 };

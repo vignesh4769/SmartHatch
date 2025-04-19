@@ -6,11 +6,6 @@ const attendanceSchema = new mongoose.Schema({
     ref: 'Employee',
     required: true
   },
-  hatchery: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Hatchery',
-    required: true
-  },
   date: {
     type: Date,
     required: true
@@ -84,29 +79,27 @@ const attendanceSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Calculate total working hours
-attendanceSchema.methods.calculateWorkingHours = function() {
-  if (!this.checkOut || !this.checkOut.time) return 0;
-  
-  const checkInTime = new Date(this.checkIn.time);
-  const checkOutTime = new Date(this.checkOut.time);
-  
-  // Calculate total break duration in milliseconds
-  const totalBreakDuration = this.breaks.reduce((total, break_) => {
-    if (break_.startTime && break_.endTime) {
-      return total + (new Date(break_.endTime) - new Date(break_.startTime));
-    }
-    return total;
-  }, 0);
-  
-  // Calculate total working hours excluding breaks
-  const totalWorkingTime = checkOutTime - checkInTime - totalBreakDuration;
-  return Math.round((totalWorkingTime / (1000 * 60 * 60)) * 100) / 100;
-};
-
-// Update total working hours before saving
+// Pre-save middleware to calculate total working hours
 attendanceSchema.pre('save', function(next) {
-  this.totalWorkingHours = this.calculateWorkingHours();
+  if (this.checkOut && this.checkOut.time) {
+    const checkInTime = new Date(this.checkIn.time);
+    const checkOutTime = new Date(this.checkOut.time);
+    
+    // Calculate total working hours in minutes
+    let totalMinutes = (checkOutTime - checkInTime) / (1000 * 60);
+    
+    // Subtract break times if any
+    if (this.breaks && this.breaks.length > 0) {
+      this.breaks.forEach(breakTime => {
+        if (breakTime.duration) {
+          totalMinutes -= breakTime.duration;
+        }
+      });
+    }
+    
+    // Convert to hours and round to 2 decimal places
+    this.totalWorkingHours = Math.round((totalMinutes / 60) * 100) / 100;
+  }
   next();
 });
 
@@ -139,8 +132,8 @@ attendanceSchema.pre('save', function(next) {
   next();
 });
 
-// Index for unique attendance per employee per hatchery per date
-attendanceSchema.index({ employee: 1, hatchery: 1, date: 1 }, { unique: true });
+// Index for unique attendance per employee per date
+attendanceSchema.index({ employee: 1, date: 1 }, { unique: true });
 
 const Attendance = mongoose.model('Attendance', attendanceSchema);
 

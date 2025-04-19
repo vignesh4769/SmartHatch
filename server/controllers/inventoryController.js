@@ -36,9 +36,10 @@ export const addInventoryItem = asyncHandler(async (req, res) => {
     description
   } = req.body;
 
-  if (!itemName || !category || !quantity || !unit || !unitPrice || !reorderPoint || !location) {
+  // Only require name, category, and quantity
+  if (!itemName || !category || !quantity) {
     res.status(400);
-    throw new Error('Please provide all required fields');
+    throw new Error('Please provide item name, category, and quantity');
   }
 
   const inventoryItem = await Inventory.create({
@@ -46,11 +47,11 @@ export const addInventoryItem = asyncHandler(async (req, res) => {
     itemName,
     category,
     quantity: Number(quantity),
-    unit,
-    unitPrice: Number(unitPrice),
-    reorderPoint: Number(reorderPoint),
+    unit: unit || 'units',
+    unitPrice: Number(unitPrice || 0),
+    reorderPoint: Number(reorderPoint || 5),
     supplier: supplier || {},
-    location,
+    location: location || 'Main Storage',
     description: description || ''
   });
 

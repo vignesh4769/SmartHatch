@@ -9,11 +9,16 @@ import Button from "../../components/common/Button";
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const [stats, setStats] = useState({
-    employeeCount: 0,
-    activeRuns: 0,
+    totalEmployees: 0,
     pendingLeaves: 0,
-    lowStockItems: 0,
-    recentActivities: [],
+    attendanceStats: {
+      present: 0,
+      absent: 0,
+      late: 0,
+      'half-day': 0,
+      'on-leave': 0
+    },
+    recentActivities: []
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,27 +38,12 @@ const AdminDashboard = () => {
           throw new Error("Authentication token is missing");
         }
 
-        // Fetch employee count
-        const employeeRes = await api.get("/api/admin/employees", { params: { hatchery: user.hatcheryName } });
-        if (!employeeRes?.data?.data) {
-          throw new Error("Invalid response format from employees endpoint");
-        }
-        const employeeCount = Array.isArray(employeeRes.data.data) ? employeeRes.data.data.length : 0;
-
-        // Fetch other dashboard stats
         const dashboardRes = await api.get("/api/admin/dashboard-stats");
-        if (!dashboardRes?.data || typeof dashboardRes.data !== "object") {
+        if (!dashboardRes?.data?.data) {
           throw new Error("Invalid response format from dashboard stats endpoint");
         }
-        const dashboardStats = dashboardRes.data;
 
-        setStats({
-          employeeCount,
-          activeRuns: dashboardStats.activeRuns || 0,
-          pendingLeaves: dashboardStats.pendingLeaves || 0,
-          lowStockItems: dashboardStats.lowStockItems || 0,
-          recentActivities: dashboardStats.recentActivities || [],
-        });
+        setStats(dashboardRes.data.data);
       } catch (err) {
         const errorDetails = {
           message: err.message,
@@ -101,19 +91,18 @@ const AdminDashboard = () => {
         <h1 className="text-2xl font-bold">
           Admin Dashboard - {user.hatcheryName || "N/A"}
         </h1>
-
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <DashboardStats
           title="Total Employees"
-          value={stats.employeeCount}
+          value={stats.totalEmployees}
           icon="users"
         />
         <DashboardStats
-          title="Active Runs"
-          value={stats.activeRuns}
-          icon="run"
+          title="Present Today"
+          value={stats.attendanceStats.present}
+          icon="attendance"
         />
         <DashboardStats
           title="Pending Leaves"
@@ -121,9 +110,9 @@ const AdminDashboard = () => {
           icon="leave"
         />
         <DashboardStats
-          title="Low Stock Items"
-          value={stats.lowStockItems}
-          icon="inventory"
+          title="Absent Today"
+          value={stats.attendanceStats.absent}
+          icon="users"
         />
       </div>
 

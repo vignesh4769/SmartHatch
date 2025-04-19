@@ -90,6 +90,41 @@ export const getMonthlyReport = async (month, year) => {
   }
 };
 
+// Get attendance records by date
+export const getAttendanceByDate = async (date) => {
+  try {
+    const response = await api.get('/api/attendance', {
+      params: { date }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching attendance:', error.response?.data);
+    throw error.response?.data || { error: 'Failed to fetch attendance records' };
+  }
+};
+
+// Submit attendance records
+export const submitAttendanceRecords = async (records) => {
+  try {
+    const response = await api.post('/api/attendance/submit', { records });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.error || 'Failed to submit attendance records';
+  }
+};
+
+// Get employees by hatchery
+export const getEmployeesByHatchery = async (hatcheryName) => {
+  try {
+    const response = await api.get('/api/employees', {
+      params: { hatchery: hatcheryName }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.error || 'Failed to fetch employees';
+  }
+};
+
 export default {
   getAttendanceRecords,
   getEmployeeAttendance,
@@ -98,5 +133,8 @@ export default {
   updateAttendance,
   getAttendanceStats,
   getTodayAttendance,
-  getMonthlyReport
+  getMonthlyReport,
+  getAttendanceByDate,
+  submitAttendanceRecords,
+  getEmployeesByHatchery
 };

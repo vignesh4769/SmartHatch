@@ -177,3 +177,91 @@ export const updateAttendance = async (req, res) => {
     });
   }
 };
+
+// Submit multiple attendance records
+export const submitAttendanceRecords = async (req, res) => {
+  try {
+    const { records } = req.body;
+    const hatcheryId = req.user.hatcheryId;
+    const recordedBy = req.user._id;
+
+    if (!Array.isArray(records) || records.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No attendance records provided'
+      });
+    }
+
+    // Get all employees for the hatchery
+    const employees = await User.find({
+      hatcheryId,
+      role: 'employee'
+    }).select('_id');
+
+    const employeeIds = employees.map(e => e._id.toString());
+
+    // Process each record
+    const savedRecords = [];
+    const errors = [];
+
+    for (const record of records) {
+      try {
+        const { employeeId, date, status } = record;
+
+        // Validate required fields
+        if (!employeeId || !date || !status) {
+          errors.push(`Invalid record: missing required fields for employee ${employeeId}`);
+          continue;
+        }
+
+        // Check if employee belongs to the hatchery
+        if (!employeeIds.includes(employeeId.toString())) {
+          errors.push(`Employee ${employeeId} not found in your hatchery`);
+          continue;
+        }
+
+        // Check for existing attendance record
+        const existingAttendance = await Attendance.findOne({
+          employeeId,
+          date: new Date(date)
+        });
+
+        if (existingAttendance) {
+          // Update existing record
+          existingAttendance.status = status;
+          await existingAttendance.save();
+          savedRecords.push(existingAttendance);
+        } else {
+          // Create new record
+          const attendance = new Attendance({
+            employeeId,
+            date: new Date(date),
+            status,
+            recordedBy
+          });
+          await attendance.save();
+          savedRecords.push(attendance);
+        }
+      } catch (error) {
+        console.error('Error processing record:', error);
+        errors.push(`Error processing record for employee ${record.employeeId}: ${error.message}`);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Attendance records processed',
+      data: {
+        saved: savedRecords.length,
+        errors: errors.length > 0 ? errors : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Error submitting attendance records:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while submitting attendance records'
+    });
+  }
+};

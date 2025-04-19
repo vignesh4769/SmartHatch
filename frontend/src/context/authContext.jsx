@@ -37,8 +37,11 @@ const AuthProvider = ({ children }) => {
         throw new Error("Invalid login response");
       }
 
+      localStorage.setItem("user", JSON.stringify(userData));
+
       delete api.defaults.headers.common["Authorization"];
       api.defaults.headers.common["Authorization"] = `Bearer ${userData.token}`;
+      
       setUser(userData);
       return userData;
     } catch (error) {

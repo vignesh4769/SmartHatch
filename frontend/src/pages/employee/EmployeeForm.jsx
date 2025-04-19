@@ -19,10 +19,8 @@ const EmployeeForm = () => {
       const fetchEmployee = async () => {
         try {
           setLoading(true);
-          const response = await api.get(`/api/admin/employees/${id}`, {
-            params: { hatchery: user.hatcheryName }
-          });
-          const employee = response.data;
+          const response = await api.get(`/api/employees/${id}`);
+          const employee = response.data.data;
 
           reset({
             firstName: employee.firstName,
@@ -69,25 +67,20 @@ const EmployeeForm = () => {
     setError(null);
 
     const employeeData = {
-      firstName: data.firstName,
-      lastName: data.lastName,
+      name: `${data.firstName} ${data.lastName}`,
       email: data.email,
       phone: data.phone,
-      address: data.address,
-      position: data.position,
-      department: data.department,
-      joiningDate: data.joiningDate,
-      salary: data.salary,
-      emergencyContact: data.emergencyContact,
-      hatchery: user.hatcheryName
+      role: 'employee',
+      hatchery: user.hatchery || user.hatcheryName,
+      emergencyContact: data.emergencyContact
     };
 
     try {
       if (isEditMode) {
-        await api.put(`/api/admin/employees/${id}`, employeeData);
+        await api.put(`/api/employees/${id}`, employeeData);
         toast.success('Employee updated successfully');
       } else {
-        await api.post('/api/admin/employees', employeeData);
+        await api.post('/api/employees', employeeData);
         toast.success('Employee created successfully');
       }
       navigate('/admin/employees');

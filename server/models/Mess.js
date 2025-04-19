@@ -1,91 +1,67 @@
 import mongoose from 'mongoose';
 
-const menuItemSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
-  },
-  category: {
-    type: String,
-    enum: ['breakfast', 'lunch', 'dinner', 'snacks'],
-    required: true
-  },
-  description: String,
-  cost: {
-    type: Number,
-    required: true,
-    min: 0
-  }
-});
-
-const messScheduleSchema = new mongoose.Schema({
-  hatchery: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Hatchery',
-    required: true
-  },
+const messSchema = new mongoose.Schema({
   date: {
     type: Date,
     required: true
   },
-  meal: {
+  mealType: {
     type: String,
     enum: ['breakfast', 'lunch', 'dinner'],
     required: true
   },
-  menu: [menuItemSchema],
-  startTime: {
+  menu: {
     type: String,
     required: true
   },
-  endTime: {
-    type: String,
-    required: true
-  },
-  capacity: {
-    type: Number,
-    required: true,
-    min: 1
-  },
-  attendees: [{
-    employee: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Employee'
+  items: [{
+    name: {
+      type: String,
+      required: true
     },
-    attended: {
-      type: Boolean,
-      default: false
+    quantity: {
+      type: Number,
+      required: true
     },
-    checkinTime: Date
+    unit: {
+      type: String,
+      required: true
+    },
+    cost: {
+      type: Number,
+      required: true
+    }
   }],
-  specialNotes: String,
-  status: {
-    type: String,
-    enum: ['scheduled', 'in-progress', 'completed', 'cancelled'],
-    default: 'scheduled'
-  }
+  totalCost: {
+    type: Number,
+    required: true
+  },
+  numberOfPeople: {
+    type: Number,
+    required: true
+  },
+  costPerPerson: {
+    type: Number,
+    required: true
+  },
+  preparedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee',
+    required: true
+  },
+  notes: String
 }, { timestamps: true });
 
-// Pre-save middleware to update status based on current time
-messScheduleSchema.pre('save', function(next) {
-  const now = new Date();
-  const scheduleDate = new Date(this.date);
-  const [startHour, startMinute] = this.startTime.split(':');
-  const [endHour, endMinute] = this.endTime.split(':');
-  
-  const startDateTime = new Date(scheduleDate.setHours(startHour, startMinute));
-  const endDateTime = new Date(scheduleDate.setHours(endHour, endMinute));
-
-  if (now < startDateTime) {
-    this.status = 'scheduled';
-  } else if (now >= startDateTime && now <= endDateTime) {
-    this.status = 'in-progress';
-  } else {
-    this.status = 'completed';
+// Pre-save middleware to calculate cost per person
+messSchema.pre('save', function(next) {
+  if (this.totalCost && this.numberOfPeople) {
+    this.costPerPerson = Math.round((this.totalCost / this.numberOfPeople) * 100) / 100;
   }
-  
   next();
 });
 
-const MessSchedule = mongoose.model('MessSchedule', messScheduleSchema);
-export default MessSchedule;
+// Index for unique mess entry per date and meal type
+messSchema.index({ date: 1, mealType: 1 }, { unique: true });
+
+const Mess = mongoose.model('Mess', messSchema);
+export default Mess;

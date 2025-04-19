@@ -1,19 +1,21 @@
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import AuthContext from "../context/authhContext";
+import { useAuth } from "../context/AuthContext";
 import Spinner from "../components/Spinner";
 
 function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    role: "admin" // Default to admin role
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { email, password } = formData;
+  const { email, password, role } = formData;
 
   const navigate = useNavigate();
-  const { login, isLoading } = useContext(AuthContext);
+  const { login } = useAuth();
 
   const onChange = (e) => {
     setFormData((prevState) => ({
@@ -31,9 +33,11 @@ function Login() {
     }
 
     try {
+      setIsLoading(true);
       const userData = {
         email,
         password,
+        role
       };
 
       const response = await login(userData);
@@ -46,6 +50,8 @@ function Login() {
       }
     } catch (error) {
       toast.error(error.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -112,6 +118,27 @@ function Login() {
                   required
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Role
+              </label>
+              <div className="mt-1">
+                <select
+                  id="role"
+                  name="role"
+                  value={role}
+                  onChange={onChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="employee">Employee</option>
+                </select>
               </div>
             </div>
 

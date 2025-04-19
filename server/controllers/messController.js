@@ -6,20 +6,56 @@ import asyncHandler from 'express-async-handler';
 // @route   POST /api/mess/schedule
 // @access  Private/Admin
 export const createMessSchedule = asyncHandler(async (req, res) => {
-  const { date, meal: mealType, menu, startTime, endTime } = req.body;
+  const { date, mealType, menu, startTime, endTime } = req.body;
+  
+  console.log('Received mess schedule request:', req.body);
 
-  if (!date || !mealType || !menu || !startTime || !endTime || !Array.isArray(menu) || !menu.every(item => item.name && item.category && item.cost)) {
+  // Basic validation
+  if (!date || !mealType || !menu || !startTime || !endTime) {
+    console.log('Missing required fields:', { date, mealType, menu, startTime, endTime });
     res.status(400);
-    throw new Error('Invalid request format');
+    throw new Error('Missing required fields');
+  }
+
+  // Menu validation
+  if (!Array.isArray(menu)) {
+    console.log('Menu is not an array:', menu);
+    res.status(400);
+    throw new Error('Menu must be an array');
+  }
+
+  // Validate each menu item
+  const invalidMenuItems = menu.filter(item => !item.name || !item.category || typeof item.cost !== 'number');
+  if (invalidMenuItems.length > 0) {
+    console.log('Invalid menu items:', invalidMenuItems);
+    res.status(400);
+    throw new Error('Invalid menu items: each item must have name, category, and cost');
+  }
+
+  // Time validation
+  const [startHour, startMinute] = startTime.split(':').map(Number);
+  const [endHour, endMinute] = endTime.split(':').map(Number);
+  
+  const startDateTime = new Date(date);
+  startDateTime.setHours(startHour, startMinute);
+  
+  const endDateTime = new Date(date);
+  endDateTime.setHours(endHour, endMinute);
+
+  if (endDateTime <= startDateTime) {
+    console.log('Invalid time range:', { startTime, endTime });
+    res.status(400);
+    throw new Error('End time must be after start time');
   }
 
   const schedule = await MessSchedule.create({
-    hatchery: req.user.hatcheryId,
+    hatchery: req.user._id,
     date: new Date(date),
-    mealType,
-    menu: Array.isArray(menu) ? menu : [menu],
+    meal: mealType,
+    menu: menu,
     startTime: startTime,
-    endTime: endTime
+    endTime: endTime,
+    capacity: 100
   });
 
   res.status(201).json({
@@ -34,22 +70,71 @@ export const createMessSchedule = asyncHandler(async (req, res) => {
 export const getMessSchedules = asyncHandler(async (req, res) => {
   const { startDate, endDate } = req.query;
 
-  const query = {
-    hatchery: req.user.hatcheryId,
-    date: {}
-  };
+  console.log('Fetching mess schedules with params:', { startDate, endDate });
 
-  if (startDate) query.date.$gte = new Date(startDate);
-  if (endDate) query.date.$lte = new Date(endDate);
+  try {
+    // Get the user's hatchery ID
+    const hatcheryId = req.user.hatcheryId || req.user.hatchery;
+    
+    if (!hatcheryId) {
+      console.log('No hatchery ID found for user:', req.user._id);
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
 
-  const schedules = await MessSchedule.find(query)
-    .populate('attendees.employee', 'name employeeId')
-    .sort({ date: 1, startTime: 1 });
+    console.log('Using hatchery ID:', hatcheryId);
 
-  res.json({
-    success: true,
-    data: schedules
-  });
+    const query = {
+      hatchery: hatcheryId
+    };
+
+    if (startDate && endDate) {
+      // Parse dates and set time to start/end of day
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      console.log('Date range:', {
+        start: start.toISOString(),
+        end: end.toISOString()
+      });
+
+      query.date = {
+        $gte: start,
+        $lte: end
+      };
+    }
+
+    console.log('Query:', JSON.stringify(query, null, 2));
+
+    const schedules = await MessSchedule.find(query)
+      .populate('attendees.employee', 'name employeeId')
+      .sort({ date: 1, startTime: 1 });
+
+    console.log('Found schedules:', schedules.length);
+    if (schedules.length > 0) {
+      console.log('Sample schedule:', {
+        date: schedules[0].date,
+        meal: schedules[0].meal,
+        menu: schedules[0].menu.length ? schedules[0].menu[0] : 'No menu items'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: schedules
+    });
+  } catch (error) {
+    console.error('Error in getMessSchedules:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch mess schedules'
+    });
+  }
 });
 
 // @desc    Update a mess schedule

@@ -26,71 +26,119 @@ export const getPendingLeaves = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
   try {
-    const hatcheryName = req.user.hatcheryName;
+    if (!req.user?._id) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required"
+      });
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get total employees for this hatchery
+    // Get total employees
     const totalEmployees = await Employee.countDocuments({
-      hatchery: hatcheryName,
       deletedAt: null
     });
 
-    // Get active employees (verified)
-    const activeEmployees = await User.countDocuments({
-      hatcheryName,
-      role: 'employee',
-      isVerified: true
-    });
+    // Get recent activities (last 5)
+    const recentActivities = await Employee.find({
+      deletedAt: null
+    })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .select('firstName lastName email createdAt')
+    .lean();
 
-    // Get today's attendance
-    const todayAttendance = await Attendance.aggregate([
-      {
-        $match: {
-          date: today,
-          employeeId: { 
-            $in: await User.find({ hatcheryName, role: 'employee' }).distinct('_id')
-          }
-        }
-      },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+    // Format recent activities
+    const formattedActivities = recentActivities.map(activity => ({
+      ...activity,
+      name: `${activity.firstName} ${activity.lastName}`,
+      type: 'employee_added',
+      date: activity.createdAt
+    }));
 
-    // Convert to more usable format
+    // Initialize attendance stats
     const attendanceStats = {
       present: 0,
-      absent: activeEmployees, // Default to all active employees (will be reduced by present count)
+      absent: totalEmployees,
       late: 0,
       'half-day': 0,
       'on-leave': 0
     };
 
-    todayAttendance.forEach(stat => {
-      attendanceStats[stat._id] = stat.count;
-      if (stat._id === 'present') {
-        attendanceStats.absent = activeEmployees - stat.count;
-      }
-    });
-
     res.status(200).json({
       success: true,
       data: {
         totalEmployees,
-        activeEmployees,
-        presentToday: attendanceStats.present,
-        onLeaveToday: attendanceStats['on-leave']
+        pendingLeaves: 0,
+        attendanceStats,
+        recentActivities: formattedActivities
       }
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     res.status(500).json({ 
       success: false, 
-      error: 'Server error while fetching dashboard stats' 
+      error: 'Server error while fetching dashboard stats',
+      details: error.message
+    });
+  }
+};
+
+export const getEmployeeDetails = async (req, res) => {
+  try {
+    if (!req.user?._id) {
+      console.error("No user ID in request");
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
+    const admin = await User.findById(req.user._id);
+    if (!admin) {
+      console.error("Admin not found for ID:", req.user._id);
+      return res.status(401).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    if (admin.role !== "admin") {
+      console.error("User is not an admin:", req.user);
+      return res.status(403).json({
+        success: false,
+        error: "Not authorized as an admin",
+      });
+    }
+
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      hatchery: admin.hatcheryName,
+      deletedAt: null,
+    }).select("-password");
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        error: "Employee not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: employee,
+    });
+  } catch (error) {
+    console.error("Get employee details error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.user?._id,
+    });
+    res.status(500).json({
+      success: false,
+      error: "Server error while fetching employee details",
     });
   }
 };

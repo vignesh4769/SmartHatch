@@ -1,64 +1,140 @@
 import React, { useState } from "react";
-import { FaUtensils, FaClock, FaStar, FaBell, FaCalendar } from "react-icons/fa";
+import { FaUtensils, FaStar } from "react-icons/fa";
+import { useQuery } from '@tanstack/react-query';
+import messApi from '../../api/messApi';
+import { format, startOfWeek, addDays, parseISO, isSameDay } from 'date-fns';
+import { toast } from 'react-toastify';
+import { FiClock, FiCalendar, FiCoffee, FiSun, FiMoon, FiAlertCircle } from 'react-icons/fi';
 
 const MessSchedule = () => {
-  const weeklySchedule = [
-    {
-      _id: '1',
-      date: new Date(),
-      breakfast: 'Masala Dosa, Sambar, Coconut Chutney, Tea/Coffee',
-      breakfastTime: '7:30 AM - 9:30 AM',
-      lunch: 'Rice, Dal Tadka, Mixed Veg Curry, Roti, Curd, Salad',
-      lunchTime: '12:30 PM - 2:30 PM',
-      dinner: 'Chapati, Paneer Butter Masala, Jeera Rice, Dal Fry, Salad',
-      dinnerTime: '7:30 PM - 9:30 PM',
-      weeklySpecial: 'Chef Special: Hyderabadi Biryani & Gulab Jamun'
-    },
-    {
-      _id: '2',
-      date: new Date(Date.now() + 86400000),
-      breakfast: 'Poha, Upma, Boiled Eggs, Bread Toast, Tea/Coffee',
-      breakfastTime: '7:30 AM - 9:30 AM',
-      lunch: 'Rice, Rajma, Aloo Gobi, Roti, Raita, Papad',
-      lunchTime: '12:30 PM - 2:30 PM',
-      dinner: 'Chapati, Mix Veg Curry, Veg Pulao, Dal Tadka, Salad',
-      dinnerTime: '7:30 PM - 9:30 PM',
-      weeklySpecial: 'Chef Special: Hyderabadi Biryani & Gulab Jamun'
-    },
-    {
-      _id: '3',
-      date: new Date(Date.now() + 172800000),
-      breakfast: 'Idli, Vada, Sambar, Mint Chutney, Tea/Coffee',
-      breakfastTime: '7:30 AM - 9:30 AM',
-      lunch: 'Rice, Dal Fry, Bhindi Masala, Roti, Buttermilk, Salad',
-      lunchTime: '12:30 PM - 2:30 PM',
-      dinner: 'Chapati, Matar Paneer, Veg Biryani, Dal Makhani, Salad',
-      dinnerTime: '7:30 PM - 9:30 PM',
-      weeklySpecial: 'Chef Special: Hyderabadi Biryani & Gulab Jamun'
-    },
-    {
-      _id: '4',
-      date: new Date(Date.now() + 259200000),
-      breakfast: 'Puri Bhaji, Boiled Eggs, Bread Toast, Tea/Coffee',
-      breakfastTime: '7:30 AM - 9:30 AM',
-      lunch: 'Rice, Sambar, Cabbage Poriyal, Roti, Curd Rice, Papad',
-      lunchTime: '12:30 PM - 2:30 PM',
-      dinner: 'Chapati, Palak Paneer, Jeera Rice, Dal Fry, Salad',
-      dinnerTime: '7:30 PM - 9:30 PM',
-      weeklySpecial: 'Chef Special: Hyderabadi Biryani & Gulab Jamun'
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Generate week's dates starting from Monday
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  
+  // Format dates for API query
+  const startDate = format(weekStart, 'yyyy-MM-dd');
+  const endDate = format(addDays(weekStart, 6), 'yyyy-MM-dd');
+
+  const { data: response = { data: [] }, isLoading, error } = useQuery({
+    queryKey: ['messSchedules', startDate, endDate],
+    queryFn: () => messApi.getMessSchedules(startDate, endDate),
+    retry: false // Don't retry on error
+  });
+
+  const schedules = response.data || [];
+
+  // Group schedules by date and meal type
+  const schedulesByDate = schedules.reduce((acc, schedule) => {
+    const dateStr = format(parseISO(schedule.date), 'yyyy-MM-dd');
+    if (!acc[dateStr]) {
+      acc[dateStr] = {
+        breakfast: null,
+        lunch: null,
+        dinner: null
+      };
     }
-  ];
+    acc[dateStr][schedule.meal.toLowerCase()] = schedule;
+    return acc;
+  }, {});
 
-  const [schedule] = useState(weeklySchedule);
-  const [activeDay, setActiveDay] = useState(0);
-
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric'
-    });
+  // Get schedules for selected date
+  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+  const todaySchedules = schedulesByDate[selectedDateStr] || {
+    breakfast: null,
+    lunch: null,
+    dinner: null
   };
+
+  // Get special items for today
+  const specialItems = schedules
+    .filter(schedule => isSameDay(parseISO(schedule.date), selectedDate))
+    .flatMap(schedule => schedule.menu || [])
+    .filter(item => item.category === 'special');
+
+  // Helper function to format time
+  const formatTime = (time) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours), parseInt(minutes));
+    return format(date, 'hh:mm a');
+  };
+
+  // Helper function to format date
+  const formatDate = (date) => {
+    return format(date, 'MMM dd, yyyy');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    // Check for specific error message
+    const errorMessage = error?.response?.data?.error || error.message;
+    const isHatcheryError = errorMessage.includes('no hatchery assigned');
+
+    return (
+      <div className="flex-1 ml-64 p-8 bg-gray-100 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <FiAlertCircle className="text-6xl text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              {isHatcheryError ? 'Hatchery Not Assigned' : 'Unable to Load Mess Schedule'}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {isHatcheryError 
+                ? 'You have not been assigned to a hatchery yet. Please contact your administrator to get assigned to a hatchery.'
+                : 'There was an error loading the mess schedule. Please try again later.'}
+            </p>
+            {!isHatcheryError && (
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Try Again
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const renderMealCard = (meal, icon, schedule) => (
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-center mb-4">
+        {icon}
+        <h3 className="text-lg font-semibold ml-2">{meal}</h3>
+      </div>
+      {schedule ? (
+        <div>
+          <div className="mb-2 text-gray-600">
+            <FiClock className="inline mr-1" />
+            {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+          </div>
+          <div className="space-y-2">
+            {schedule.menu?.map((item, index) => (
+              <div key={index} className="flex justify-between items-center">
+                <span className={item.category === 'special' ? 'text-blue-600 font-medium' : ''}>
+                  {item.name}
+                </span>
+                <span className="text-gray-500">₹{item.cost}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="text-gray-500">No schedule available</p>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex">
@@ -68,11 +144,19 @@ const MessSchedule = () => {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl font-bold text-gray-800">Mess Schedule</h1>
-              <p className="text-gray-600 mt-1">Weekly meal schedule and timings</p>
+              <p className="text-gray-600 mt-1">Daily meal schedule and timings</p>
             </div>
-            <div className="flex items-center gap-2">
-              <FaCalendar className="text-blue-600" />
-              <span className="text-gray-600 font-medium">{formatDate(new Date())}</span>
+            <div className="flex items-center gap-4">
+              <input
+                type="date"
+                value={format(selectedDate, 'yyyy-MM-dd')}
+                onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                className="input input-bordered"
+              />
+              <div className="flex items-center gap-2">
+                <FiCalendar className="text-blue-600" />
+                <span className="text-gray-600 font-medium">{formatDate(selectedDate)}</span>
+              </div>
             </div>
           </div>
 
@@ -82,50 +166,22 @@ const MessSchedule = () => {
               <FaStar className="text-yellow-300" />
               <h2 className="text-xl font-semibold">Today's Special</h2>
             </div>
-            <p className="text-blue-100">{schedule[0]?.weeklySpecial}</p>
-          </div>
-
-          {/* Meal Schedule Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Breakfast Card */}
-            <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Breakfast</h3>
-                <div className="bg-yellow-100 p-2 rounded-full">
-                  <FaClock className="text-yellow-600" />
-                </div>
+            {specialItems.length > 0 ? (
+              <div className="space-y-2">
+                {specialItems.map((item, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-white font-medium">{item.name}</span>
+                    <span className="text-blue-100">₹{item.cost}</span>
+                  </div>
+                ))}
               </div>
-              <p className="text-sm text-gray-600 mb-2">{schedule[activeDay]?.breakfastTime}</p>
-              <p className="text-gray-800">{schedule[activeDay]?.breakfast}</p>
-            </div>
-
-            {/* Lunch Card */}
-            <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Lunch</h3>
-                <div className="bg-green-100 p-2 rounded-full">
-                  <FaClock className="text-green-600" />
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">{schedule[activeDay]?.lunchTime}</p>
-              <p className="text-gray-800">{schedule[activeDay]?.lunch}</p>
-            </div>
-
-            {/* Dinner Card */}
-            <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Dinner</h3>
-                <div className="bg-purple-100 p-2 rounded-full">
-                  <FaClock className="text-purple-600" />
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 mb-2">{schedule[activeDay]?.dinnerTime}</p>
-              <p className="text-gray-800">{schedule[activeDay]?.dinner}</p>
-            </div>
+            ) : (
+              <p className="text-blue-100">No special items for today</p>
+            )}
           </div>
 
           {/* Weekly Schedule */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-800">Weekly Schedule</h2>
               <FaUtensils className="text-2xl text-blue-600" />
@@ -141,33 +197,59 @@ const MessSchedule = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {schedule.map((day, index) => (
-                   <tr 
-                   key={day._id}
-                   className={`hover:bg-gray-50 cursor-pointer ${index === activeDay ? 'bg-blue-50' : ''}`}
-                   onClick={() => setActiveDay(index)}
-                 >
-                 
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{formatDate(day.date)}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{day.breakfast}</div>
-                        <div className="text-xs text-gray-500">{day.breakfastTime}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{day.lunch}</div>
-                        <div className="text-xs text-gray-500">{day.lunchTime}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{day.dinner}</div>
-                        <div className="text-xs text-gray-500">{day.dinnerTime}</div>
-                      </td>
-                    </tr>
-                  ))}
+                  {weekDates.map((date) => {
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const daySchedules = schedulesByDate[dateStr] || {
+                      breakfast: null,
+                      lunch: null,
+                      dinner: null
+                    };
+                    const isSelected = dateStr === selectedDateStr;
+
+                    return (
+                      <tr 
+                        key={dateStr}
+                        className={`hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-blue-50' : ''}`}
+                        onClick={() => setSelectedDate(date)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{formatDate(date)}</div>
+                        </td>
+                        {['breakfast', 'lunch', 'dinner'].map((meal) => (
+                          <td key={meal} className="px-6 py-4">
+                            {daySchedules[meal] ? (
+                              <>
+                                <div className="text-sm text-gray-900">
+                                  <ul className="list-disc list-inside">
+                                    {daySchedules[meal].menu?.map((item, i) => (
+                                      <li key={i} className={item.category === 'special' ? 'text-blue-600' : ''}>
+                                        {item.name}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {formatTime(daySchedules[meal].startTime)} - {formatTime(daySchedules[meal].endTime)}
+                                </div>
+                              </>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Today's Schedule Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {renderMealCard('Breakfast', <FiCoffee className="text-orange-500" />, todaySchedules.breakfast)}
+            {renderMealCard('Lunch', <FiSun className="text-yellow-500" />, todaySchedules.lunch)}
+            {renderMealCard('Dinner', <FiMoon className="text-indigo-500" />, todaySchedules.dinner)}
           </div>
         </div>
       </div>

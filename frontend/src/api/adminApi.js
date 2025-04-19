@@ -22,7 +22,7 @@ export const getEmployees = async (page = 1, limit = 10, filters = {}) => {
 export const createEmployee = async (employeeData) => {
   try {
     const config = { headers: { 'Content-Type': 'application/json' } };
-const response = await api.post(`${API_URL}/employees/register`, employeeData, config);
+    const response = await api.post(`/api/admin/employee/register`, employeeData, config);
     return response.data;
   } catch (error) {
     throw { message: error.response?.data?.error || 'Failed to create employee', details: error.response?.data?.details };

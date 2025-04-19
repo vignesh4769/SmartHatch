@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
+import {
   FiHome,
   FiUsers,
   FiCalendar,
@@ -13,11 +13,26 @@ const AdminSidebar = () => {
   const location = useLocation();
 
   const navItems = [
-    { path: "/admin/employees", icon: <FiUsers size={18} />, label: "Employee Management" },
-    { path: "/admin/attendance", icon: <FiCalendar size={18} />, label: "Attendance" },
-    { path: "/admin/leaves", icon: <FiFileText size={18} />, label: "Leave Approval" },
-    { path: "/admin/runs", icon: <FiTrendingUp size={18} />, label: "Run Management" },
-    { path: "/admin/mess", icon: <FiCoffee size={18} />, label: "Mess Management" },
+    {
+      path: "/admin/employees",
+      icon: <FiUsers size={18} />,
+      label: "Employee Management",
+    },
+    {
+      path: "/admin/attendance",
+      icon: <FiCalendar size={18} />,
+      label: "Attendance",
+    },
+    {
+      path: "/admin/leaves",
+      icon: <FiFileText size={18} />,
+      label: "Leave Approval",
+    },
+    {
+      path: "/admin/mess",
+      icon: <FiCoffee size={18} />,
+      label: "Mess Management",
+    },
   ];
 
   return (

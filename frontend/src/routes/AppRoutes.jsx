@@ -13,8 +13,8 @@ const ForgotPassword = React.lazy(() => import("../pages/Auth/ForgotPassword"));
 // Admin Pages
 const AdminDashboard = React.lazy(() => import("../pages/admin/AdminDashboard"));
 const EmployeeManagement = React.lazy(() => import("../pages/admin/EmployeeManagement"));
-const RunManagement = React.lazy(() => import("../pages/admin/RunManagement.jsx"));
 const AttendanceManagement = React.lazy(() => import("../pages/admin/AttendanceManagement"));
+const EmployeeAttendance = React.lazy(() => import("../pages/admin/EmployeeAttendance"));
 const LeaveApproval = React.lazy(() => import("../pages/admin/LeaveApproval"));
 const InventoryManagement = React.lazy(() => import("../pages/admin/InventoryManagement"));
 const FinancialDashboard = React.lazy(() => import("../pages/admin/FinancialDashboard"));
@@ -90,18 +90,18 @@ const AppRoutes = () => {
             }
           />
           <Route
-            path="/admin/employees/register"
+            path="/admin/EmployeeAttendance"
             element={
               <Suspense fallback={<LoadingSpinner />}>
-                <EmployeeRegistration />
+                <EmployeeAttendance />
               </Suspense>
             }
           />
           <Route
-            path="/admin/runs"
+            path="/admin/employees/register"
             element={
               <Suspense fallback={<LoadingSpinner />}>
-                <RunManagement />
+                <EmployeeRegistration />
               </Suspense>
             }
           />
@@ -213,6 +213,18 @@ const AppRoutes = () => {
       )}
 
       {/* Shared Routes */}
+      <Route
+        path="/attendance"
+        element={
+          <Suspense fallback={<LoadingSpinner />}>
+            {user.role === "admin" ? (
+              <Navigate to="/admin/attendance" replace />
+            ) : (
+              <MyAttendance />
+            )}
+          </Suspense>
+        }
+      />
       <Route
         path="/profile"
         element={

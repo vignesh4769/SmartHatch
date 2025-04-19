@@ -15,7 +15,7 @@ const iconComponents = {
   leave: <HiClock className="w-6 h-6" />,
   salary: <HiCash className="w-6 h-6" />,
   inventory: <HiShoppingBag className="w-6 h-6" />,
-  run: <HiCalendar className="w-6 h-6" />
+  calendar: <HiCalendar className="w-6 h-6" />
 };
 
 const DashboardStats = ({ title, value, icon, link }) => {

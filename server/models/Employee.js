@@ -1,97 +1,102 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const employeeSchema = new mongoose.Schema({
-  role: {
-    type: String,
-    enum: ['employee'],
-    default: 'employee',
-    required: true
-  },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    select: false
-  },
   firstName: {
     type: String,
-    required: [true, 'First name is required'],
-    trim: true
+    required: [true, 'Please add a first name']
   },
   lastName: {
     type: String,
-    required: [true, 'Last name is required'],
-    trim: true
+    required: [true, 'Please add a last name']
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: [true, 'Please add an email'],
     unique: true,
-    lowercase: true,
-    trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address']
+    match: [
+      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      'Please add a valid email'
+    ]
+  },
+  password: {
+    type: String,
+    required: [true, 'Please add a password'],
+    minlength: 6,
+    select: false
   },
   phone: {
     type: String,
-    required: [true, 'Phone number is required'],
-    trim: true
+    required: [true, 'Please add a phone number']
   },
   address: {
     type: String,
-    required: [true, 'Address is required'],
-    trim: true
+    required: [true, 'Please add an address']
   },
   position: {
     type: String,
-    required: [true, 'Position is required'],
-    trim: true
+    required: [true, 'Please add a position']
   },
   department: {
     type: String,
-    required: [true, 'Department is required'],
-    trim: true
-  },
-  joiningDate: {
-    type: Date,
-    required: [true, 'Joining date is required'],
-    default: Date.now
+    required: [true, 'Please add a department']
   },
   salary: {
     type: Number,
-    required: [true, 'Salary is required'],
-    min: [0, 'Salary must be positive']
+    required: [true, 'Please add a salary']
+  },
+  role: {
+    type: String,
+    enum: ['admin', 'manager', 'employee'],
+    default: 'employee'
   },
   emergencyContact: {
     name: {
       type: String,
-      required: [true, 'Emergency contact name is required'],
-      trim: true
+      required: [true, 'Please add emergency contact name']
     },
     relation: {
       type: String,
-      required: [true, 'Emergency contact relation is required'],
-      trim: true
+      required: [true, 'Please add emergency contact relation']
     },
     phone: {
       type: String,
-      required: [true, 'Emergency contact phone is required'],
-      trim: true
+      required: [true, 'Please add emergency contact phone']
     }
   },
   employeeId: {
     type: String,
-    required: true,
     unique: true
-  },
-  hatchery: {
-    type: String,
-    required: [true, 'Hatchery name is required'],
-    trim: true
   },
   deletedAt: {
     type: Date,
     default: null
   }
-}, { timestamps: true });
+}, {
+  timestamps: true
+});
+
+// Encrypt password using bcrypt
+employeeSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) {
+    next();
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Match user entered password to hashed password in database
+employeeSchema.methods.matchPassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Soft delete method
+employeeSchema.methods.remove = async function() {
+  this.deletedAt = new Date();
+  await this.save();
+};
 
 const Employee = mongoose.model('Employee', employeeSchema);
+
 export default Employee;

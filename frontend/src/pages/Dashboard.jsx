@@ -65,7 +65,7 @@ function Dashboard() {
                 <DashboardStats
                   title="Mess Schedule"
                   value={dashboardData?.stats?.messSchedule || "View"}
-                  icon="run"
+                  icon="calendar"
                   link="/mess"
                 />
                 <DashboardStats
@@ -76,7 +76,7 @@ function Dashboard() {
                 />
               </div>
             )}
-          </div> {/* <-- This was missing! */}
+          </div>
 
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
@@ -92,6 +92,16 @@ function Dashboard() {
                   <p className="text-gray-600">View and manage all employees</p>
                 </Link>
               )}
+
+              <Link
+                to="/attendance"
+                className="bg-red-100 hover:bg-red-200 rounded-lg p-6 transition duration-300"
+              >
+                <h2 className="text-xl font-semibold text-red-800 mb-2">
+                  Mark Your Attendance
+                </h2>
+                <p className="text-gray-600">Record your attendance for today</p>
+              </Link>
 
               <Link
                 to="/mess"

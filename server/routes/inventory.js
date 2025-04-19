@@ -12,6 +12,11 @@ import {
 
 const router = express.Router();
 
+// Placeholder routes for inventory management
+router.get('/', protect, (req, res) => {
+  res.json({ message: 'Inventory routes will be implemented soon' });
+});
+
 router.use(protect);
 
 // Inventory management routes

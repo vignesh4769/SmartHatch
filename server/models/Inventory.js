@@ -1,45 +1,14 @@
 import mongoose from 'mongoose';
 
-const stockRequestSchema = new mongoose.Schema({
-  requestedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+const InventorySchema = new mongoose.Schema({
+  item: {
+    type: String,
     required: true
-  },
-  quantity: {
-    type: Number,
-    required: true,
-    min: 1
-  },
-  urgency: {
-    type: String,
-    enum: ['low', 'normal', 'high', 'critical'],
-    default: 'normal'
-  },
-  notes: String,
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected', 'fulfilled'],
-    default: 'pending'
-  }
-}, { timestamps: true });
-
-const inventorySchema = new mongoose.Schema({
-  hatchery: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Hatchery',
-    required: true
-  },
-  itemName: {
-    type: String,
-    required: true,
-    trim: true
   },
   category: {
     type: String,
     required: true,
-    enum: ['feed', 'equipment', 'medicine', 'chemicals', 'other'],
-    default: 'other'
+    enum: ['feed', 'medicine', 'equipment', 'supplies', 'other']
   },
   quantity: {
     type: Number,
@@ -48,77 +17,71 @@ const inventorySchema = new mongoose.Schema({
   },
   unit: {
     type: String,
-    required: true,
-    trim: true,
-    default: 'units'
+    required: true
   },
   unitPrice: {
     type: Number,
     required: true,
-    min: 0,
-    default: 0
+    min: 0
   },
-  reorderPoint: {
+  totalValue: {
     type: Number,
     required: true,
-    min: 0,
-    default: 5
+    min: 0
   },
-  supplier: {
-    name: String,
-    contact: String,
-    email: String,
-    phone: String
+  minimumStock: {
+    type: Number,
+    required: true,
+    min: 0
   },
   location: {
     type: String,
-    required: true,
-    trim: true,
-    default: 'Main Storage'
-  },
-  description: {
-    type: String,
-    trim: true
-  },
-  lastRestocked: {
-    type: Date,
-    default: Date.now
+    required: true
   },
   status: {
     type: String,
     enum: ['in-stock', 'low-stock', 'out-of-stock'],
     default: 'in-stock'
   },
-  stockRequests: [stockRequestSchema]
+  lastRestocked: {
+    type: Date
+  },
+  expiryDate: {
+    type: Date
+  },
+  supplier: {
+    name: String,
+    contact: String,
+    email: String
+  },
+  notes: String,
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }
 }, { timestamps: true });
 
-// Pre-save middleware to update status based on quantity and reorderPoint
-inventorySchema.pre('save', function(next) {
-  if (this.quantity <= 0) {
-    this.status = 'out-of-stock';
-  } else if (this.quantity <= this.reorderPoint) {
-    this.status = 'low-stock';
-  } else {
-    this.status = 'in-stock';
-  }
-  
-  // Update lastRestocked if quantity increased
-  if (this.isModified('quantity') && this.quantity > this._originalQuantity) {
-    this.lastRestocked = Date.now();
-  }
-  
-  next();
-});
+// Index for efficient querying
+InventorySchema.index({ category: 1, status: 1 });
+InventorySchema.index({ item: 1 });
 
-// Store original quantity for comparison
-inventorySchema.pre('save', function(next) {
-  if (this.isNew) {
-    this._originalQuantity = this.quantity;
-  } else {
-    this._originalQuantity = this._originalQuantity || this.quantity;
-  }
-  next();
-});
+// Calculate total inventory value
+InventorySchema.statics.getTotalValue = async function() {
+  const result = await this.aggregate([
+    { $group: { _id: null, total: { $sum: "$totalValue" } } }
+  ]);
+  return result.length > 0 ? result[0].total : 0;
+};
 
-const Inventory = mongoose.model('Inventory', inventorySchema);
+// Get low stock items
+InventorySchema.statics.getLowStockItems = async function() {
+  return await this.find({
+    $expr: {
+      $lte: ["$quantity", "$minimumStock"]
+    }
+  });
+};
+
+const Inventory = mongoose.model('Inventory', InventorySchema);
 export default Inventory;

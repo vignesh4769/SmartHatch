@@ -18,7 +18,7 @@ function EmployeeDashboard() {
 
   return (
     <div className="flex">
-      {/* Sidebar */}
+   
       <div className="w-64 min-h-screen bg-gray-900 text-white p-6">
         <div className="mb-8">
           <img src="/logo.png" alt="SmartHatch" className="h-12 mb-4" />
@@ -37,11 +37,10 @@ function EmployeeDashboard() {
         </nav>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 p-8 bg-gray-100">
-        {/* Header Section */}
+       
         <div className="bg-white rounded-xl shadow-md p-8 mb-8">
-          <div className="flex items-center gap-6"> {/* Removed justify-between */}
+          <div className="flex items-center gap-6"> 
             <div className="bg-blue-100 p-4 rounded-full">
               <FaUserCircle className="text-6xl text-blue-600" />
             </div>
@@ -58,7 +57,6 @@ function EmployeeDashboard() {
           </div>
         </div>
 
-        {/* Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {menuItems.map((item, index) => (
             <div

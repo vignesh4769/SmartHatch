@@ -13,17 +13,13 @@ const inventoryApi = {
 
   // Add new inventory item
   addInventoryItem: async (itemData) => {
+    console.log('Sending inventory data:', itemData); // Debug log
     const response = await api.post('/api/inventory', {
       itemName: itemData.name,
       category: itemData.category || 'other',
-      quantity: itemData.quantity,
-      unit: itemData.unit || 'units',
-      unitPrice: itemData.unitPrice || 0,
-      reorderPoint: itemData.reorderPoint || 5,
-      supplier: itemData.supplier || {},
-      location: itemData.location || 'Main Storage',
-      description: itemData.description || ''
+      quantity: itemData.quantity
     });
+    console.log('Server response:', response.data); // Debug log
     return response.data;
   },
 

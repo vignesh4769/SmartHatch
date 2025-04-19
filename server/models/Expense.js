@@ -1,11 +1,6 @@
 import mongoose from 'mongoose';
 
 const ExpenseSchema = new mongoose.Schema({
-  hatchery: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Hatchery',
-    required: true
-  },
   run: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Run'
@@ -64,9 +59,7 @@ const ExpenseSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Index for efficient querying
-ExpenseSchema.index({ hatchery: 1, date: -1 });
-ExpenseSchema.index({ run: 1, category: 1 });
-ExpenseSchema.index({ status: 1 });
+ExpenseSchema.index({ date: -1 });
 
 // Calculate total amount for a given run and category
 ExpenseSchema.statics.getTotalByRunAndCategory = async function(runId, category) {
@@ -78,14 +71,13 @@ ExpenseSchema.statics.getTotalByRunAndCategory = async function(runId, category)
 };
 
 // Get monthly expenses summary
-ExpenseSchema.statics.getMonthlyExpenses = async function(hatcheryId, year, month) {
+ExpenseSchema.statics.getMonthlyExpenses = async function(year, month) {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0);
   
   return await this.aggregate([
     {
       $match: {
-        hatchery: hatcheryId,
         date: { $gte: startDate, $lte: endDate },
         status: 'paid'
       }

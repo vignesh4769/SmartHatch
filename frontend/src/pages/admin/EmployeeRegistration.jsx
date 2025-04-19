@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { registerEmployee, getEmployeeById } from "../../api/authApi";
-import employeeAPI from "../../api/employeeAPI";
-import Button from "../../components/common/Button";
 import { useAuth } from "../../context/AuthContext";
+import Button from "../../components/common/Button";
+import {
+  createEmployee,
+  updateEmployee,
+  getEmployeeDetails,
+} from "../../api/employeeAPI";
 
 function EmployeeRegistration() {
   const { user } = useAuth();
@@ -30,10 +33,11 @@ function EmployeeRegistration() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // Handles changes in form fields
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name.includes("emergencyContact.")) {
-      const field = name.split(".")[1];
+    if (name.startsWith("emergency_")) {
+      const field = name.split("_")[1];
       setFormData((prev) => ({
         ...prev,
         emergencyContact: {
@@ -46,15 +50,16 @@ function EmployeeRegistration() {
     }
   };
 
+  // Fetches employee details if in edit mode
   useEffect(() => {
     if (id) {
       const fetchEmployee = async () => {
         try {
-          const employee = await getEmployeeById(id);
+          const employee = await getEmployeeDetails(id);
           setFormData({
             ...employee,
             joiningDate: new Date(employee.joiningDate).toISOString().split("T")[0],
-            password: "" // Clear password field in edit mode
+            password: "", // Don't show password in the edit form
           });
           setIsEditMode(true);
         } catch (error) {
@@ -65,27 +70,52 @@ function EmployeeRegistration() {
     }
   }, [id]);
 
+  // Handles form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Ensure emergency contact data is properly formatted
+      if (!formData.emergencyContact.name || !formData.emergencyContact.relation || !formData.emergencyContact.phone) {
+        setError("All emergency contact fields are required");
+        return;
+      }
+
+      const employeeData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        address: formData.address || '',
+        position: formData.position || 'Employee',
+        department: formData.department || 'General',
+        salary: formData.salary || '0',
+        emergencyContact: {
+          name: formData.emergencyContact.name,
+          relation: formData.emergencyContact.relation,
+          phone: formData.emergencyContact.phone
+        }
+      };
+
+      console.log('Employee data being sent:', JSON.stringify(employeeData, null, 2));
+
       if (isEditMode) {
-        await employeeAPI.updateEmployee(id, {
-          ...formData,
-          hatchery: user?.hatcheryName || "",
-          joiningDate: new Date(formData.joiningDate)
-        });
+        await updateEmployee(id, employeeData);
         navigate("/admin/dashboard", { state: { success: "Employee updated successfully" } });
       } else {
-        await registerEmployee({
-          ...formData,
-          hatchery: user?.hatcheryName || "",
-          joiningDate: new Date(formData.joiningDate),
-        });
+        await createEmployee(employeeData);
         navigate("/admin/dashboard", { state: { success: "Employee registered successfully" } });
       }
     } catch (error) {
-      setError(error.response?.data?.message || 
-        (isEditMode ? "Failed to update employee" : "Failed to register employee"));
+      console.error('Error response:', error.response?.data);
+      // Handle specific error cases
+      if (error.response?.status === 409) {
+        setError("An employee with this email already exists. Please use a different email address.");
+      } else if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError(isEditMode ? "Failed to update employee" : "Failed to register employee");
+      }
       console.error("Error:", error);
     }
   };
@@ -267,11 +297,12 @@ function EmployeeRegistration() {
                 </label>
                 <input
                   type="text"
-                  name="emergencyContact.name"
+                  name="emergency_name"
+                  id="emergency_name"
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   value={formData.emergencyContact.name}
                   onChange={handleChange}
-                  className="input input-bordered w-full"
-                  required
                 />
               </div>
               <div className="form-control">
@@ -280,11 +311,12 @@ function EmployeeRegistration() {
                 </label>
                 <input
                   type="text"
-                  name="emergencyContact.relation"
+                  name="emergency_relation"
+                  id="emergency_relation"
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   value={formData.emergencyContact.relation}
                   onChange={handleChange}
-                  className="input input-bordered w-full"
-                  required
                 />
               </div>
               <div className="form-control">
@@ -293,27 +325,19 @@ function EmployeeRegistration() {
                 </label>
                 <input
                   type="tel"
-                  name="emergencyContact.phone"
+                  name="emergency_phone"
+                  id="emergency_phone"
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   value={formData.emergencyContact.phone}
                   onChange={handleChange}
-                  className="input input-bordered w-full"
-                  required
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 mt-6">
-            <Button
-              type="submit"
-              text="Register Employee"
-              className="btn btn-primary btn-block sm:btn-wide"
-            />
-            <Button
-              text="Cancel"
-              className="btn btn-outline btn-block sm:btn-wide"
-              onClick={() => navigate("/admin/dashboard")}
-            />
+          <div className="form-control mt-6">
+            <Button type="submit" text={isEditMode ? "Update Employee" : "Register Employee"} />
           </div>
         </form>
       </div>

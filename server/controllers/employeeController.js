@@ -1,137 +1,96 @@
 import Employee from '../models/Employee.js';
-
 import asyncHandler from 'express-async-handler';
-
 import { generateEmployeeId } from '../utils/idGenerator.js';
 
-// @desc    Get all employees for a hatchery
+// @desc    Get all employees
 // @route   GET /api/employees
 // @access  Private/Admin
 export const getEmployees = asyncHandler(async (req, res) => {
-  const { hatchery } = req.query;
-  
-  if (!hatchery) {
-    return res.status(400).json({ 
-      success: false,
-      message: 'Hatchery name is required'
-    });
-  }
-
-  // Verify the requested hatchery matches the admin's hatchery
-  if (hatchery !== req.user.hatcheryName) {
-    return res.status(403).json({
-      success: false,
-      message: 'Not authorized to access employees from this hatchery'
-    });
-  }
-
-  try {
-    const employees = await Employee.find({ hatchery, deletedAt: null })
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      data: employees
-    });
-  } catch (error) {
-    console.error('Error fetching employees:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch employees',
-      error: error.message
-    });
-  }
+  const employees = await Employee.find()
+    .select('-password');
+  res.json({
+    success: true,
+    data: employees
+  });
 });
 
-// @desc    Create a new employee
+// @desc    Register a new employee
 // @route   POST /api/employees
-// @access  Private/Admin
+// @access  Public
 export const registerEmployee = asyncHandler(async (req, res) => {
   const {
     firstName,
     lastName,
     email,
+    password,
     phone,
     address,
     position,
     department,
     salary,
-    emergencyContact
-  } = req.body;
-
-  if (!firstName || !lastName || !email || !phone || !address || !position || !department || !salary) {
-    return res.status(400).json({
-      success: false,
-      message: 'All required fields must be provided'
-    });
-  }
-
-  const hashedPassword = await bcrypt.hash(req.body.password, 10);
-  return createEmployee(req, res);
-});
-
-export const createEmployee = asyncHandler(async (req, res) => {
-  const {
-    firstName,
-    lastName,
-    email,
-    phone,
-    address,
-    position,
-    department,
-    joiningDate,
-    salary,
+    role,
     emergencyContact
   } = req.body;
 
   // Validate required fields
-  if (!firstName || !lastName || !email || !phone || !address || 
-      !position || !department || !joiningDate || !salary || 
-      !emergencyContact?.name || !emergencyContact?.relation || !emergencyContact?.phone) {
-    return res.status(400).json({
-      success: false,
-      message: 'All fields are required'
-    });
+  if (!firstName || !lastName || !email || !password || !phone || !address || 
+      !position || !department || !salary || !emergencyContact) {
+    res.status(400);
+    throw new Error('All fields are required');
   }
 
-  // Check if employee with this email already exists
-  const existingEmployee = await Employee.findOne({ email });
-  if (existingEmployee) {
-    return res.status(400).json({
-      success: false,
-      message: 'Employee with this email already exists'
-    });
+  // Validate emergency contact fields
+  if (!emergencyContact.name || !emergencyContact.relation || !emergencyContact.phone) {
+    res.status(400);
+    throw new Error('All emergency contact fields are required');
   }
 
-  try {
-    // Create employee
-    const employee = await Employee.create({
+  // Check if employee exists
+  const employeeExists = await Employee.findOne({ email });
+  if (employeeExists) {
+    res.status(400);
+    throw new Error('Employee already exists');
+  }
+
+  // Generate employee ID
+  const employeeId = await generateEmployeeId();
+
+  // Create employee
+  const employee = await Employee.create({
     firstName,
     lastName,
     email,
+    password,
     phone,
     address,
     position,
     department,
     salary,
+    role,
     emergencyContact,
-    password: hashedPassword,
-    employeeId: generateEmployeeId(),
-    hatchery: req.user.hatcheryName
-    });
+    employeeId
+  });
 
+  if (employee) {
     res.status(201).json({
       success: true,
-      message: 'Employee created successfully',
-      data: employee
+      data: {
+        _id: employee._id,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        phone: employee.phone,
+        address: employee.address,
+        position: employee.position,
+        department: employee.department,
+        salary: employee.salary,
+        role: employee.role,
+        employeeId: employee.employeeId
+      }
     });
-  } catch (error) {
-    console.error('Error creating employee:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create employee',
-      error: error.message
-    });
+  } else {
+    res.status(400);
+    throw new Error('Invalid employee data');
   }
 });
 
@@ -151,14 +110,6 @@ export const getEmployee = asyncHandler(async (req, res) => {
     });
   }
 
-  // Verify the employee belongs to the admin's hatchery
-  if (employee.hatchery !== req.user.hatcheryName) {
-    return res.status(403).json({
-      success: false,
-      message: 'Not authorized to access this employee'
-    });
-  }
-
   res.json({
     success: true,
     data: employee
@@ -166,116 +117,47 @@ export const getEmployee = asyncHandler(async (req, res) => {
 });
 
 // @desc    Update employee
-// @route   PUT /api/employees/:id
+// @route   PUT /api/employees/:employeeId
 // @access  Private/Admin
 export const updateEmployee = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ 
-    _id: req.params.id,
-    deletedAt: null 
-  });
+  const employee = await Employee.findById(req.params.employeeId);
 
   if (!employee) {
-    return res.status(404).json({
-      success: false,
-      message: 'Employee not found'
-    });
+    res.status(404);
+    throw new Error('Employee not found');
   }
 
-  // Verify the employee belongs to the admin's hatchery
-  if (employee.hatchery !== req.user.hatcheryName) {
-    return res.status(403).json({
-      success: false,
-      message: 'Not authorized to update this employee'
-    });
+  employee.name = req.body.name || employee.name;
+  employee.email = req.body.email || employee.email;
+  employee.phone = req.body.phone || employee.phone;
+  employee.role = req.body.role || employee.role;
+
+  if (req.body.password) {
+    employee.password = req.body.password;
   }
 
-  const {
-    firstName,
-    lastName,
-    email,
-    phone,
-    address,
-    position,
-    department,
-    joiningDate,
-    salary,
-    emergencyContact
-  } = req.body;
+  const updatedEmployee = await employee.save();
 
-  // Update employee fields
-  employee.firstName = firstName || employee.firstName;
-  employee.lastName = lastName || employee.lastName;
-  employee.email = email || employee.email;
-  employee.phone = phone || employee.phone;
-  employee.address = address || employee.address;
-  employee.position = position || employee.position;
-  employee.department = department || employee.department;
-  employee.joiningDate = joiningDate || employee.joiningDate;
-  employee.salary = salary || employee.salary;
-  
-  if (emergencyContact) {
-    employee.emergencyContact = {
-      name: emergencyContact.name || employee.emergencyContact.name,
-      relation: emergencyContact.relation || employee.emergencyContact.relation,
-      phone: emergencyContact.phone || employee.emergencyContact.phone
-    };
-  }
-
-  try {
-    const updatedEmployee = await employee.save();
-    res.json({
-      success: true,
-      message: 'Employee updated successfully',
-      data: updatedEmployee
-    });
-  } catch (error) {
-    console.error('Error updating employee:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update employee',
-      error: error.message
-    });
-  }
+  res.json({
+    _id: updatedEmployee._id,
+    name: updatedEmployee.name,
+    email: updatedEmployee.email,
+    phone: updatedEmployee.phone,
+    role: updatedEmployee.role
+  });
 });
 
 // @desc    Delete employee (soft delete)
-// @route   DELETE /api/employees/:id
+// @route   DELETE /api/employees/:employeeId
 // @access  Private/Admin
 export const deleteEmployee = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ 
-    _id: req.params.id,
-    deletedAt: null 
-  });
+  const employee = await Employee.findById(req.params.employeeId);
 
   if (!employee) {
-    return res.status(404).json({
-      success: false,
-      message: 'Employee not found'
-    });
+    res.status(404);
+    throw new Error('Employee not found');
   }
 
-  // Verify the employee belongs to the admin's hatchery
-  if (employee.hatchery !== req.user.hatcheryName) {
-    return res.status(403).json({
-      success: false,
-      message: 'Not authorized to delete this employee'
-    });
-  }
-
-  try {
-    employee.deletedAt = new Date();
-    await employee.save();
-    
-    res.json({
-      success: true,
-      message: 'Employee deleted successfully'
-    });
-  } catch (error) {
-    console.error('Error deleting employee:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete employee',
-      error: error.message
-    });
-  }
+  await employee.remove();
+  res.json({ message: 'Employee removed' });
 });

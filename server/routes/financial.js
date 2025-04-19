@@ -27,4 +27,9 @@ router.route('/transactions/:id')
   .put(admin, updateTransaction)
   .delete(admin, deleteTransaction);
 
+// Placeholder routes for financial management
+router.get('/', protect, (req, res) => {
+  res.json({ message: 'Financial routes will be implemented soon' });
+});
+
 export default router;

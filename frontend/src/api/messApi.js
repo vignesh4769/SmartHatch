@@ -3,27 +3,43 @@ import api from './config';
 const messApi = {
   // Get mess schedules for a date range
   getMessSchedules: async (startDate, endDate) => {
-    const params = {};
-    if (startDate) params.startDate = startDate;
-    if (endDate) params.endDate = endDate;
-    
-    const response = await api.get('/api/mess/schedule', { params });
-    return response.data;
+    try {
+      const params = {
+        startDate,
+        endDate
+      };
+      
+      const response = await api.get('/api/mess/schedule', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching mess schedules:', error.response?.data);
+      throw error.response?.data || { error: 'Failed to fetch mess schedules' };
+    }
   },
 
   // Create a new mess schedule
   createMessSchedule: async (scheduleData) => {
+    console.log('Creating mess schedule with data:', scheduleData);
+    
+    // Ensure menu is an array of objects with required properties
+    const formattedMenu = Array.isArray(scheduleData.menu) 
+      ? scheduleData.menu.map(item => ({
+          name: item.name || '',
+          category: item.category || scheduleData.mealType,
+          cost: item.cost || 0
+        }))
+      : [];
+    
     const formattedData = {
       date: scheduleData.date,
       mealType: scheduleData.mealType,
       startTime: scheduleData.startTime,
       endTime: scheduleData.endTime,
-      menu: scheduleData.menu.map(item => ({
-        name: item.name,
-        category: item.category,
-        cost: item.cost
-      }))
+      menu: formattedMenu
     };
+    
+    console.log('Formatted data for API:', formattedData);
+    
     const response = await api.post('/api/mess/schedule', formattedData);
     return response.data;
   },

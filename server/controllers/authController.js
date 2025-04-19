@@ -5,8 +5,8 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import asyncHandler from "express-async-handler";
+import { getEmployeeDetails } from "./adminController.js";
 
-// Email transporter configuration
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -15,7 +15,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Utility functions
 const generateOTP = () => crypto.randomInt(1000, 9999).toString();
 
 const validatePassword = (password) => {
@@ -39,9 +38,11 @@ const validatePassword = (password) => {
   return errors;
 };
 
-export const login = async (req, res) => {
+const login = async (req, res) => {
   try {
     const { email, password, role } = req.body;
+    
+    console.log(`Login attempt: ${email}, role: ${role}`);
 
     if (!email || !password || !role) {
       return res.status(400).json({
@@ -91,8 +92,6 @@ export const login = async (req, res) => {
         _id: user._id,
         role: user.role,
         name: user.name,
-        hatcheryName: user.hatcheryName,
-        caaNumber: user.caaNumber,
         email: user.email,
         token,
       };
@@ -123,7 +122,6 @@ export const login = async (req, res) => {
         _id: employee._id,
         role: "employee",
         name: `${employee.firstName} ${employee.lastName}`,
-        hatcheryName: employee.hatchery,
         email: employee.email,
         employeeId: employee.employeeId,
         token,
@@ -149,11 +147,11 @@ export const login = async (req, res) => {
   }
 };
 
-export const signup = async (req, res) => {
+const signup = async (req, res) => {
   try {
-    const { hatcheryName, caaNumber, name, phone, email, password } = req.body;
+    const { name, phone, email, password } = req.body;
 
-    if (!hatcheryName || !caaNumber || !name || !phone || !email || !password) {
+    if (!name || !phone || !email || !password) {
       return res.status(400).json({
         success: false,
         error: "All fields are required",
@@ -193,8 +191,6 @@ export const signup = async (req, res) => {
       email,
       password: hashedPassword,
       role: "admin",
-      hatcheryName,
-      caaNumber,
       phone,
       verificationOTP,
       verificationOTPExpires: Date.now() + 600000,
@@ -232,7 +228,7 @@ export const signup = async (req, res) => {
   }
 };
 
-export const verifyEmail = async (req, res) => {
+const verifyEmail = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -274,7 +270,7 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
-export const forgotPassword = async (req, res) => {
+const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -332,7 +328,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-export const resetPassword = async (req, res) => {
+const resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 
@@ -384,7 +380,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-export const logout = async (req, res) => {
+const logout = async (req, res) => {
   try {
     res.status(200).json({
       success: true,
@@ -399,63 +395,7 @@ export const logout = async (req, res) => {
   }
 };
 
-export const registerEmployee = asyncHandler(async (req, res) => {
-  const { 
-    firstName,
-    lastName,
-    email,
-    phone,
-    address,
-    position,
-    department,
-    salary,
-    password
-  } = req.body;
-
-  if (!firstName || !lastName || !email || !phone || !address || !position || !department || !salary || !password) {
-    return res.status(400).json({
-      success: false,
-      message: 'All required fields must be provided'
-    });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  try {
-    const employee = await Employee.create({
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      position,
-      department,
-      salary,
-      password: hashedPassword,
-      employeeId: `EMP${crypto.randomBytes(4).toString("hex").toUpperCase()}`,
-      hatchery: req.user.hatcheryName
-    });
-
-    res.status(201).json({
-      success: true,
-      data: employee
-    });
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: 'Email already exists'
-      });
-    }
-    res.status(500).json({
-      success: false,
-      message: 'Employee registration failed',
-      error: error.message
-    });
-  }
-});
-
-export const getEmployees = async (req, res) => {
+const getEmployees = async (req, res) => {
   try {
     const admin = await User.findById(req.user._id);
     if (!admin || admin.role !== "admin") {
@@ -466,7 +406,6 @@ export const getEmployees = async (req, res) => {
     }
 
     const employees = await Employee.find({
-      hatchery: admin.hatcheryName,
       deletedAt: null,
     }).select("-password");
 
@@ -483,10 +422,9 @@ export const getEmployees = async (req, res) => {
   }
 };
 
-export const getAdminEmployees = async (req, res) => {
+const getAdminEmployees = async (req, res) => {
   try {
     if (!req.user?._id) {
-      console.error("No user ID in request");
       return res.status(401).json({
         success: false,
         error: "Authentication required",
@@ -495,7 +433,6 @@ export const getAdminEmployees = async (req, res) => {
 
     const admin = await User.findById(req.user._id);
     if (!admin) {
-      console.error("Admin not found for ID:", req.user._id);
       return res.status(401).json({
         success: false,
         error: "User not found",
@@ -503,7 +440,6 @@ export const getAdminEmployees = async (req, res) => {
     }
 
     if (admin.role !== "admin") {
-      console.error("User is not an admin:", req.user);
       return res.status(403).json({
         success: false,
         error: "Not authorized as an admin",
@@ -511,17 +447,15 @@ export const getAdminEmployees = async (req, res) => {
     }
 
     const employees = await Employee.find({
-      hatchery: admin.hatcheryName,
       deletedAt: null,
     }).select("-password");
 
-    res.status(200).json(employees);
-  } catch (error) {
-    console.error("Get admin employees error:", {
-      message: error.message,
-      stack: error.stack,
-      userId: req.user?._id,
+    res.status(200).json({
+      success: true,
+      data: employees,
     });
+  } catch (error) {
+    console.error("Get admin employees error:", error);
     res.status(500).json({
       success: false,
       error: "Server error while fetching employees",
@@ -529,54 +463,13 @@ export const getAdminEmployees = async (req, res) => {
   }
 };
 
-export const getDashboardStats = async (req, res) => {
-  try {
-    if (!req.user?._id) {
-      console.error("No user ID in request for dashboard stats");
-      return res.status(401).json({
-        success: false,
-        error: "Authentication required",
-      });
-    }
-
-    const admin = await User.findById(req.user._id);
-    if (!admin) {
-      console.error("Admin not found for ID:", req.user._id);
-      return res.status(401).json({
-        success: false,
-        error: "User not found",
-      });
-    }
-
-    if (admin.role !== "admin") {
-      console.error("User is not an admin:", req.user);
-      return res.status(403).json({
-        success: false,
-        error: "Not authorized as an admin",
-      });
-    }
-
-    // Mock data (replace with real data from your models)
-    const stats = {
-      activeRuns: 10,
-      pendingLeaves: 5,
-      lowStockItems: 3,
-      recentActivities: [
-        { id: 1, action: "Employee registered", timestamp: new Date() },
-        { id: 2, action: "Leave requested", timestamp: new Date() },
-      ],
-    };
-
-    res.status(200).json(stats);
-  } catch (error) {
-    console.error("Get dashboard stats error:", {
-      message: error.message,
-      stack: error.stack,
-      userId: req.user?._id,
-    });
-    res.status(500).json({
-      success: false,
-      error: "Server error while fetching dashboard stats",
-    });
-  }
+export {
+  login,
+  signup,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
+  logout,
+  getEmployees,
+  getAdminEmployees,
 };

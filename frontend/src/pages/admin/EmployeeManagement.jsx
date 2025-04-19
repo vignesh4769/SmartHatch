@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import api from '../../api/config';
-import { toast } from 'react-toastify';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../api/config";
+import { toast } from "react-toastify";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { FiUserPlus } from "react-icons/fi";
 
 const EmployeeManagement = () => {
   const navigate = useNavigate();
@@ -13,36 +14,43 @@ const EmployeeManagement = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        console.log('Admin hatcheryName:', user.hatcheryName);
-        const response = await api.get('/api/admin/employees', {
-          params: { hatchery: user.hatcheryName }
+        console.log("Admin hatcheryName:", user.hatcheryName);
+        
+        // Fetch employees
+        const employeesResponse = await api.get("/api/admin/employees", {
+          params: { hatchery: user.hatcheryName },
         });
-        console.log('API response:', response.data);
-        setEmployees(Array.isArray(response.data.data) ? response.data.data : []);
+        console.log("Employees API response:", employeesResponse.data);
+        setEmployees(
+          Array.isArray(employeesResponse.data.data) ? employeesResponse.data.data : []
+        );
+
         setError(null);
       } catch (err) {
-        console.error('Error fetching employees:', err);
-        setError(err.response?.data?.message || 'Failed to fetch employees');
-        toast.error('Failed to fetch employees');
+        console.error("Error fetching data:", err);
+        setError(err.response?.data?.message || "Failed to fetch data");
+        toast.error("Failed to fetch data");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEmployees();
-  }, [user.hatcheryName]);
+    if (user && user.hatcheryName) {
+      fetchData();
+    }
+  }, [user]);
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
+    if (window.confirm("Are you sure you want to delete this employee?")) {
       try {
         await api.delete(`/api/admin/employees/${id}`);
-        setEmployees(employees.filter(emp => emp._id !== id));
-        toast.success('Employee deleted successfully');
+        setEmployees(employees.filter((emp) => emp._id !== id));
+        toast.success("Employee deleted successfully");
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to delete employee');
+        toast.error(err.response?.data?.message || "Failed to delete employee");
       }
     }
   };
@@ -57,19 +65,27 @@ const EmployeeManagement = () => {
           {/* Header Section */}
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Employee Management</h1>
+              <h1 className="text-3xl font-bold text-gray-800">
+                Employee Management
+              </h1>
               <p className="text-gray-500">{employees.length} employees</p>
             </div>
             <button
-              onClick={() => navigate('/admin/employees/new')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200"
+              onClick={() => navigate("/admin/employees/register")}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center"
             >
+              <FiUserPlus className="mr-2" />
               Add Employee
             </button>
           </div>
 
-          {/* Table Section */}
+          {/* Active Employees Section */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Active Employees
+              </h2>
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -115,20 +131,18 @@ const EmployeeManagement = () => {
                         {employee.department}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-4">
-                          <button
-                            onClick={() => navigate(`/admin/employees/${employee._id}/edit`)}
-                            className="text-blue-600 hover:text-blue-800 transition duration-200"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(employee._id)}
-                            className="text-red-600 hover:text-red-800 transition duration-200"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => navigate(`/admin/employees/${employee._id}/edit`)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-4"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(employee._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))}

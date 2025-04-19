@@ -1,51 +1,37 @@
 import mongoose from 'mongoose';
 
 const visitorSchema = new mongoose.Schema({
-  hatchery: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Hatchery',
-    required: true
-  },
-  visitorName: {
+  name: {
     type: String,
     required: true
   },
-  company: String,
-  phone: {
-    type: String,
-    required: true
-  },
-  email: String,
-  purpose: {
+  reason: {
     type: String,
     required: true
   },
   checkIn: {
     type: Date,
-    required: true,
-    default: Date.now
+    required: true
   },
   checkOut: {
-    type: Date
+    type: Date,
+    default: null
   },
+  company: String,
+  phone: String,
+  email: String,
+  purpose: String,
   hostEmployee: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-    required: true
+    ref: 'Employee'
   },
   status: {
     type: String,
     enum: ['active', 'completed'],
     default: 'active'
   },
-  idProof: {
-    type: String,
-    required: true
-  },
-  temperature: {
-    type: Number,
-    required: true
-  },
+  idProof: String,
+  temperature: Number,
   vehicleNumber: String,
   notes: String,
   signature: String
