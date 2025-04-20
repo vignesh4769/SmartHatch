@@ -149,9 +149,9 @@ const login = async (req, res) => {
 
 const signup = async (req, res) => {
   try {
-    const { name, phone, email, password } = req.body;
+    const { hatcheryName, caaNumber, name, phone, email, password } = req.body;
 
-    if (!name || !phone || !email || !password) {
+    if (!hatcheryName || !caaNumber || !name || !phone || !email || !password) {
       return res.status(400).json({
         success: false,
         error: "All fields are required",
@@ -395,32 +395,6 @@ const logout = async (req, res) => {
   }
 };
 
-const getEmployees = async (req, res) => {
-  try {
-    const admin = await User.findById(req.user._id);
-    if (!admin || admin.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        error: "Not authorized",
-      });
-    }
-
-    const employees = await Employee.find({
-      deletedAt: null,
-    }).select("-password");
-
-    res.status(200).json({
-      success: true,
-      employees,
-    });
-  } catch (error) {
-    console.error("Get employees error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Server error while fetching employees",
-    });
-  }
-};
 
 const getAdminEmployees = async (req, res) => {
   try {
@@ -470,6 +444,5 @@ export {
   forgotPassword,
   resetPassword,
   logout,
-  getEmployees,
   getAdminEmployees,
 };

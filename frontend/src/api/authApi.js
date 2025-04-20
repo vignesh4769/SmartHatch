@@ -6,9 +6,10 @@ const API_URL = import.meta.env.VITE_API_URL
 
 export const login = async (email, password, role) => {
   try {
-    const response = await api.post(`${API_URL}/${role}/login`, {
+    const response = await api.post(`${API_URL}/login`, {
       email,
       password,
+      role
     });
 
     if (response.data.user?.token) {
@@ -33,7 +34,12 @@ export const logout = async () => {
 
 export const signup = async (userData) => {
   try {
-    const response = await api.post(`${API_URL}/signup`, userData);
+    const response = await api.post(`${API_URL}/signup`, {
+      name: userData.name,
+      phone: userData.phone,
+      email: userData.email,
+      password: userData.password
+    });
     return response.data;
   } catch (error) {
     throw error.response?.data?.error || "Signup failed";

@@ -6,7 +6,6 @@ import {
   forgotPassword,
   resetPassword,
   logout,
-  getEmployees,
   getAdminEmployees,
 } from "../controllers/authController.js";
 import { registerEmployee } from "../controllers/employeeController.js";
