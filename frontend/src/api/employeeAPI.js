@@ -2,7 +2,7 @@ import api from "./config";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const EMPLOYEE_API_URL = `${API_BASE_URL}/api/admin/employees`;
-const AUTH_API_URL = `${API_BASE_URL}/api/auth/admin`;
+
 
 // Get paginated list of employees
 export const getEmployees = async (page = 1, limit = 10) => {
@@ -46,14 +46,13 @@ export const updateEmployee = async (id, employeeData) => {
 };
 
 // Soft delete an employee
-export const deleteEmployee = async (id, reason) => {
+// Soft delete an employee
+export const deleteEmployee = async (id) => {
   try {
-    const response = await api.delete(`${EMPLOYEE_API_URL}/${id}`, {
-      data: { reason },
-    });
+    const response = await api.delete(`${EMPLOYEE_API_URL}/${id}`);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.error || "Failed to delete employee";
+    throw error.response?.data?.message || "Failed to delete employee";
   }
 };
 

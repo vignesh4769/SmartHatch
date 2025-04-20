@@ -160,17 +160,25 @@ export const updateEmployee = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Delete employee (soft delete)
-// @route   DELETE /api/employees/:employeeId
-// @access  Private/Admin
+
 export const deleteEmployee = asyncHandler(async (req, res) => {
-  const employee = await Employee.findById(req.params.employeeId);
+  const employee = await Employee.findById(req.params.id);
 
   if (!employee) {
     res.status(404);
     throw new Error("Employee not found");
   }
 
-  await employee.remove();
-  res.json({ message: "Employee removed" });
+  // Perform soft delete by setting deletedAt
+  employee.deletedAt = new Date();
+  await employee.save();
+
+  res.json({ 
+    success: true,
+    message: "Employee deactivated successfully",
+    data: {
+      _id: employee._id,
+      deletedAt: employee.deletedAt
+    }
+  });
 });
