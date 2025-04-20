@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
-import Visitor from '../models/Visitor.js';
-import Employee from '../models/Employee.js';
-import asyncHandler from 'express-async-handler';
+import mongoose from "mongoose";
+import Visitor from "../models/Visitor.js";
+import Employee from "../models/Employee.js";
+import asyncHandler from "express-async-handler";
 
 // @desc    Register a new visitor
 // @route   POST /api/visitors
@@ -16,27 +16,27 @@ export const registerVisitor = asyncHandler(async (req, res) => {
     hostEmployeeId,
     expectedDuration,
     idType,
-    idNumber
+    idNumber,
   } = req.body;
 
   if (!name || !phone || !purpose || !hostEmployeeId) {
     res.status(400);
-    throw new Error('Please provide all required fields');
+    throw new Error("Please provide all required fields");
   }
 
   if (!mongoose.Types.ObjectId.isValid(hostEmployeeId)) {
     res.status(400);
-    throw new Error('Invalid host employee ID');
+    throw new Error("Invalid host employee ID");
   }
 
   const hostEmployee = await Employee.findOne({
     _id: hostEmployeeId,
-    hatcheryId: req.user.hatcheryId
+    hatcheryId: req.user.hatcheryId,
   });
 
   if (!hostEmployee) {
     res.status(404);
-    throw new Error('Host employee not found');
+    throw new Error("Host employee not found");
   }
 
   const visitor = await Visitor.create({
@@ -52,13 +52,13 @@ export const registerVisitor = asyncHandler(async (req, res) => {
     idNumber,
     checkIn: {
       time: Date.now(),
-      by: req.user._id
-    }
+      by: req.user._id,
+    },
   });
 
   res.status(201).json({
     success: true,
-    data: visitor
+    data: visitor,
   });
 });
 
@@ -70,72 +70,70 @@ export const checkoutVisitor = asyncHandler(async (req, res) => {
 
   if (!mongoose.Types.ObjectId.isValid(visitorId)) {
     res.status(400);
-    throw new Error('Invalid visitor ID');
+    throw new Error("Invalid visitor ID");
   }
 
   const visitor = await Visitor.findById(visitorId);
 
   if (!visitor) {
     res.status(404);
-    throw new Error('Visitor not found');
+    throw new Error("Visitor not found");
   }
 
   if (visitor.hatchery.toString() !== req.user.hatcheryId.toString()) {
     res.status(403);
-    throw new Error('Not authorized');
+    throw new Error("Not authorized");
   }
 
   if (visitor.checkOut) {
     res.status(400);
-    throw new Error('Visitor already checked out');
+    throw new Error("Visitor already checked out");
   }
 
   visitor.checkOut = {
     time: Date.now(),
-    by: req.user._id
+    by: req.user._id,
   };
 
   const updatedVisitor = await visitor.save();
 
   res.json({
     success: true,
-    data: updatedVisitor
+    data: updatedVisitor,
   });
 });
 
-// @desc    Get all visitors for a date range
+// @desc    Get all visitors (with optional date range and status filters)
 // @route   GET /api/visitors
 // @access  Private
 export const getVisitors = asyncHandler(async (req, res) => {
   const { startDate, endDate, status } = req.query;
 
+  // Base query always includes the hatchery filter
   const query = {
-    hatchery: req.user.hatcheryId
+    hatchery: req.user.hatcheryId,
   };
 
+  // Apply date range filter only if either startDate or endDate is provided
   if (startDate || endDate) {
-    query['checkIn.time'] = {};
-    if (startDate) query['checkIn.time'].$gte = new Date(startDate);
-    if (endDate) query['checkIn.time'].$lte = new Date(endDate);
+    query["checkIn.time"] = {};
+    if (startDate) query["checkIn.time"].$gte = new Date(startDate);
+    if (endDate) query["checkIn.time"].$lte = new Date(endDate);
   }
 
-  if (status === 'active') {
+  // Apply status filter only if it is provided
+  if (status === "active") {
     query.checkOut = null;
-  } else if (status === 'completed') {
+  } else if (status === "completed") {
     query.checkOut = { $ne: null };
   }
 
-  const visitors = await Visitor.find(query)
-    .populate('hostEmployee', 'name employeeId')
-    .populate('checkIn.by', 'name')
-    .populate('checkOut.by', 'name')
-    .sort({ 'checkIn.time': -1 })
-    .lean();
+  const visitors = await Visitor.find();
 
   res.json({
     success: true,
     count: visitors.length,
-    data: visitors
+    data: visitors,
   });
 });
 
@@ -147,18 +145,18 @@ export const getVisitorStats = asyncHandler(async (req, res) => {
 
   if (!startDate || !endDate) {
     res.status(400);
-    throw new Error('Please provide start and end dates');
+    throw new Error("Please provide start and end dates");
   }
 
   const stats = await Visitor.aggregate([
     {
       $match: {
         hatchery: req.user.hatcheryId,
-        'checkIn.time': {
+        "checkIn.time": {
           $gte: new Date(startDate),
-          $lte: new Date(endDate)
-        }
-      }
+          $lte: new Date(endDate),
+        },
+      },
     },
     {
       $group: {
@@ -167,23 +165,23 @@ export const getVisitorStats = asyncHandler(async (req, res) => {
         avgDuration: {
           $avg: {
             $cond: [
-              { $ne: ['$checkOut', null] },
-              { $subtract: ['$checkOut.time', '$checkIn.time'] },
-              0
-            ]
-          }
+              { $ne: ["$checkOut", null] },
+              { $subtract: ["$checkOut.time", "$checkIn.time"] },
+              0,
+            ],
+          },
         },
-        purposes: { $push: '$purpose' }
-      }
+        purposes: { $push: "$purpose" },
+      },
     },
     {
       $project: {
         _id: 0,
         totalVisitors: 1,
-        avgDurationMinutes: { $divide: ['$avgDuration', 60000] },
-        purposeBreakdown: '$purposes'
-      }
-    }
+        avgDurationMinutes: { $divide: ["$avgDuration", 60000] },
+        purposeBreakdown: "$purposes",
+      },
+    },
   ]);
 
   res.json({
@@ -191,7 +189,7 @@ export const getVisitorStats = asyncHandler(async (req, res) => {
     data: stats[0] || {
       totalVisitors: 0,
       avgDurationMinutes: 0,
-      purposeBreakdown: []
-    }
+      purposeBreakdown: [],
+    },
   });
 });

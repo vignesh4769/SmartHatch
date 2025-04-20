@@ -31,7 +31,8 @@ function Visitors() {
     try {
       setLoading(true);
       const data = await visitorApi.getVisitors();
-      setVisitors(data);
+      setVisitors(data.data);
+      console.log(visitors);
     } catch (error) {
       console.error('Error fetching visitors:', error);
       if (error.response?.status === 401) {

@@ -17,17 +17,18 @@ const EmployeeManagement = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log("Admin hatcheryName:", user.hatcheryName);
-        
-        // Fetch employees
-        const employeesResponse = await api.get("/api/admin/employees", {
-          params: { hatchery: user.hatcheryName },
-        });
-        console.log("Employees API response:", employeesResponse.data);
-        setEmployees(
-          Array.isArray(employeesResponse.data.data) ? employeesResponse.data.data : []
+        console.log("Fetching employees...");
+        const employeesResponse = await api.get("/api/admin/employees");
+        const allEmployees = Array.isArray(employeesResponse.data.data)
+          ? employeesResponse.data.data
+          : [];
+
+        // Filter out employees that have been soft deleted
+        const activeEmployees = allEmployees.filter(
+          (emp) => emp.deletedAt === null
         );
 
+        setEmployees(activeEmployees);
         setError(null);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -38,7 +39,8 @@ const EmployeeManagement = () => {
       }
     };
 
-    if (user && user.hatcheryName) {
+    if (user) {
+      console.log("User exists, fetching data...");
       fetchData();
     }
   }, [user]);
@@ -132,7 +134,9 @@ const EmployeeManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
-                          onClick={() => navigate(`/admin/employees/${employee._id}/edit`)}
+                          onClick={() =>
+                            navigate(`/admin/employees/${employee._id}/edit`)
+                          }
                           className="text-indigo-600 hover:text-indigo-900 mr-4"
                         >
                           Edit

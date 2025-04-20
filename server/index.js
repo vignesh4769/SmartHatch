@@ -6,6 +6,7 @@ import { errorHandler } from './middleware/errorMiddleware.js';
 import { protect } from './middleware/authMiddleware.js';
 
 // Route imports
+import attendanceRoutes from './routes/attendance.js';
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/admin.js';
 import employeeRoutes from './routes/employee.js';
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/employees', employeeRoutes);
+app.use('/api/attendance', attendanceRoutes);
 app.use('/api/visitors', visitorRoutes);
 app.use('/api/financials', financialRoutes);
 app.use('/api/mess', messRoutes);

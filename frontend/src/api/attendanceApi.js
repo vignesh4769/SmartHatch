@@ -1,19 +1,25 @@
-import api from './config';
+import api from "./config";
 
-const API_URL = '/api/attendance';
+const API_URL = "/api/attendance";
 
 // Fetch attendance records with pagination and filters
-export const getAttendanceRecords = async (page = 1, limit = 10, filters = {}) => {
+export const getAttendanceRecords = async (
+  page = 1,
+  limit = 10,
+  filters = {}
+) => {
   try {
     const params = {
       page,
       limit,
-      ...filters
+      ...filters,
     };
     const response = await api.get(API_URL, { params });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Failed to fetch attendance records' };
+    throw (
+      error.response?.data || { error: "Failed to fetch attendance records" }
+    );
   }
 };
 
@@ -21,10 +27,14 @@ export const getAttendanceRecords = async (page = 1, limit = 10, filters = {}) =
 export const getEmployeeAttendance = async (employeeId, startDate, endDate) => {
   try {
     const params = { startDate, endDate };
-    const response = await api.get(`${API_URL}/employee/${employeeId}`, { params });
+    const response = await api.get(`${API_URL}/employee/${employeeId}`, {
+      params,
+    });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Failed to fetch employee attendance' };
+    throw (
+      error.response?.data || { error: "Failed to fetch employee attendance" }
+    );
   }
 };
 
@@ -34,7 +44,7 @@ export const markAttendance = async (data) => {
     const response = await api.post(API_URL, data);
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Failed to mark attendance' };
+    throw error.response?.data || { error: "Failed to mark attendance" };
   }
 };
 
@@ -44,7 +54,7 @@ export const markBulkAttendance = async (data) => {
     const response = await api.post(`${API_URL}/bulk`, data);
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Failed to mark bulk attendance' };
+    throw error.response?.data || { error: "Failed to mark bulk attendance" };
   }
 };
 
@@ -54,7 +64,7 @@ export const updateAttendance = async (attendanceId, data) => {
     const response = await api.put(`${API_URL}/${attendanceId}`, data);
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Failed to update attendance' };
+    throw error.response?.data || { error: "Failed to update attendance" };
   }
 };
 
@@ -65,7 +75,9 @@ export const getAttendanceStats = async (startDate, endDate) => {
     const response = await api.get(`${API_URL}/stats`, { params });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Failed to fetch attendance statistics' };
+    throw (
+      error.response?.data || { error: "Failed to fetch attendance statistics" }
+    );
   }
 };
 
@@ -75,7 +87,9 @@ export const getTodayAttendance = async () => {
     const response = await api.get(`${API_URL}/today`);
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Failed to fetch today\'s attendance' };
+    throw (
+      error.response?.data || { error: "Failed to fetch today's attendance" }
+    );
   }
 };
 
@@ -86,42 +100,44 @@ export const getMonthlyReport = async (month, year) => {
     const response = await api.get(`${API_URL}/monthly-report`, { params });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Failed to fetch monthly report' };
+    throw error.response?.data || { error: "Failed to fetch monthly report" };
   }
 };
 
 // Get attendance records by date
 export const getAttendanceByDate = async (date) => {
   try {
-    const response = await api.get('/api/attendance', {
-      params: { date }
+    const response = await api.get("/api/attendance/getByDate", {
+      params: { date },
     });
     return response.data;
   } catch (error) {
-    console.error('Error fetching attendance:', error.response?.data);
-    throw error.response?.data || { error: 'Failed to fetch attendance records' };
+    console.error("Error fetching attendance:", error.response?.data);
+    throw (
+      error.response?.data || { error: "Failed to fetch attendance records" }
+    );
   }
 };
 
 // Submit attendance records
 export const submitAttendanceRecords = async (records) => {
   try {
-    const response = await api.post('/api/attendance/submit', { records });
+    const response = await api.post("/api/attendance/submit", { records });
     return response.data;
   } catch (error) {
-    throw error.response?.data?.error || 'Failed to submit attendance records';
+    throw error.response?.data?.error || "Failed to submit attendance records";
   }
 };
 
 // Get employees by hatchery
 export const getEmployeesByHatchery = async (hatcheryName) => {
   try {
-    const response = await api.get('/api/employees', {
-      params: { hatchery: hatcheryName }
+    const response = await api.get("/api/employees", {
+      params: { hatchery: hatcheryName },
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data?.error || 'Failed to fetch employees';
+    throw error.response?.data?.error || "Failed to fetch employees";
   }
 };
 
@@ -136,5 +152,5 @@ export default {
   getMonthlyReport,
   getAttendanceByDate,
   submitAttendanceRecords,
-  getEmployeesByHatchery
+  getEmployeesByHatchery,
 };

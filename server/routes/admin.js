@@ -8,6 +8,7 @@ import {
   deleteEmployee
 } from '../controllers/employeeController.js';
 import { getPendingLeaves } from '../controllers/adminController.js';
+import { getVisitors } from '../controllers/visitorController.js';
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.get('/dashboard-stats', getDashboardStats);
 
 // Employee management
 router.get('/employees', getEmployees);
+router.get('/visitors', getVisitors);
 router.post('/employees', registerEmployee);
 router.put('/employees/:id', updateEmployee);
 router.delete('/employees/:id', deleteEmployee);

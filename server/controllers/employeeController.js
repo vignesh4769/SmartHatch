@@ -1,16 +1,15 @@
-import Employee from '../models/Employee.js';
-import asyncHandler from 'express-async-handler';
-import { generateEmployeeId } from '../utils/idGenerator.js';
+import Employee from "../models/Employee.js";
+import asyncHandler from "express-async-handler";
+import { generateEmployeeId } from "../utils/idGenerator.js";
 
 // @desc    Get all employees
 // @route   GET /api/employees
 // @access  Private/Admin
 export const getEmployees = asyncHandler(async (req, res) => {
-  const employees = await Employee.find()
-    .select('-password');
+  const employees = await Employee.find().select("-password");
   res.json({
     success: true,
-    data: employees
+    data: employees,
   });
 });
 
@@ -29,27 +28,41 @@ export const registerEmployee = asyncHandler(async (req, res) => {
     department,
     salary,
     role,
-    emergencyContact
+    emergencyContact,
   } = req.body;
 
   // Validate required fields
-  if (!firstName || !lastName || !email || !password || !phone || !address || 
-      !position || !department || !salary || !emergencyContact) {
+  if (
+    !firstName ||
+    !lastName ||
+    !email ||
+    !password ||
+    !phone ||
+    !address ||
+    !position ||
+    !department ||
+    !salary ||
+    !emergencyContact
+  ) {
     res.status(400);
-    throw new Error('All fields are required');
+    throw new Error("All fields are required");
   }
 
   // Validate emergency contact fields
-  if (!emergencyContact.name || !emergencyContact.relation || !emergencyContact.phone) {
+  if (
+    !emergencyContact.name ||
+    !emergencyContact.relation ||
+    !emergencyContact.phone
+  ) {
     res.status(400);
-    throw new Error('All emergency contact fields are required');
+    throw new Error("All emergency contact fields are required");
   }
 
   // Check if employee exists
   const employeeExists = await Employee.findOne({ email });
   if (employeeExists) {
     res.status(400);
-    throw new Error('Employee already exists');
+    throw new Error("Employee already exists");
   }
 
   // Generate employee ID
@@ -68,7 +81,7 @@ export const registerEmployee = asyncHandler(async (req, res) => {
     salary,
     role,
     emergencyContact,
-    employeeId
+    employeeId,
   });
 
   if (employee) {
@@ -85,12 +98,12 @@ export const registerEmployee = asyncHandler(async (req, res) => {
         department: employee.department,
         salary: employee.salary,
         role: employee.role,
-        employeeId: employee.employeeId
-      }
+        employeeId: employee.employeeId,
+      },
     });
   } else {
     res.status(400);
-    throw new Error('Invalid employee data');
+    throw new Error("Invalid employee data");
   }
 });
 
@@ -98,21 +111,21 @@ export const registerEmployee = asyncHandler(async (req, res) => {
 // @route   GET /api/employees/:id
 // @access  Private/Admin
 export const getEmployee = asyncHandler(async (req, res) => {
-  const employee = await Employee.findOne({ 
+  const employee = await Employee.findOne({
     _id: req.params.id,
-    deletedAt: null 
+    deletedAt: null,
   });
 
   if (!employee) {
     return res.status(404).json({
       success: false,
-      message: 'Employee not found'
+      message: "Employee not found",
     });
   }
 
   res.json({
     success: true,
-    data: employee
+    data: employee,
   });
 });
 
@@ -124,7 +137,7 @@ export const updateEmployee = asyncHandler(async (req, res) => {
 
   if (!employee) {
     res.status(404);
-    throw new Error('Employee not found');
+    throw new Error("Employee not found");
   }
 
   employee.name = req.body.name || employee.name;
@@ -143,7 +156,7 @@ export const updateEmployee = asyncHandler(async (req, res) => {
     name: updatedEmployee.name,
     email: updatedEmployee.email,
     phone: updatedEmployee.phone,
-    role: updatedEmployee.role
+    role: updatedEmployee.role,
   });
 });
 
@@ -155,9 +168,9 @@ export const deleteEmployee = asyncHandler(async (req, res) => {
 
   if (!employee) {
     res.status(404);
-    throw new Error('Employee not found');
+    throw new Error("Employee not found");
   }
 
   await employee.remove();
-  res.json({ message: 'Employee removed' });
+  res.json({ message: "Employee removed" });
 });

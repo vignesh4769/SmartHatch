@@ -89,7 +89,7 @@ const AdminDashboard = () => {
     <div className="p-6 ml-56">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold">
-          Admin Dashboard - {user.hatcheryName || "N/A"}
+          Admin Dashboard - {user.name || "N/A"}
         </h1>
       </div>
 
