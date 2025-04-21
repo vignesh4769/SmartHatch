@@ -11,12 +11,7 @@ import {
 } from '../controllers/employeeController.js';
 
 import { getPendingLeaves } from '../controllers/adminController.js';
-import {
-  registerVisitor,
-  checkoutVisitor,
-  getVisitors,
-  getVisitorStats
-} from '../controllers/visitorController.js';
+
 import {
   recordAttendance,
   getAttendanceByDate,
@@ -66,14 +61,6 @@ router.route('/employees/:id')
   .get(getEmployee)  // Add this if you want to fetch single employee
   .put(updateEmployee)
   .delete(deleteEmployee);
-
-// Visitor management
-router.route('/visitors')
-  .post(registerVisitor)
-  .get(getVisitors);
-
-router.put('/visitors/:id/checkout', checkoutVisitor);
-router.get('/visitors/stats', getVisitorStats);
 
 // Leave management
 router.get('/pending-leaves', getPendingLeaves);

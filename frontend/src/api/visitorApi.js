@@ -2,14 +2,13 @@ import api from './config';
 
 // Get all visitors
 export const getVisitors = async () => {
-  console.log('object')
   const response = await api.get('/api/admin/visitors');
   return response.data;
 };
 
 // Add a new visitor
 export const addVisitor = async (visitorData) => {
-  const response = await api.post('/api/admin/visitors', visitorData);
+  const response = await api.post('/api/admin/addvisitors', visitorData);
   return response.data;
 };
 

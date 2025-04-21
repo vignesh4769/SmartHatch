@@ -8,6 +8,7 @@ import { protect } from './middleware/authMiddleware.js';
 // Route imports
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/admin.js';
+import VistorRouter from './routes/VisitorRoutes.js';
 
 
 dotenv.config();
@@ -22,7 +23,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-
+app.use('/api', VistorRouter);
 app.get('/api/health', protect, (req, res) => {
   res.json({ status: 'OK' });
 });

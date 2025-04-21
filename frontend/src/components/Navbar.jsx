@@ -33,19 +33,19 @@ function Navbar({ userRole }) {
           id: 1,
           message: "New leave request pending approval",
           read: false,
-          date: "2023-06-15",
+          date: "2025-04-22",
         },
         {
           id: 2,
-          message: "Low inventory alert for Chicken Feed",
+          message: "Low inventory alert for Feed",
           read: false,
-          date: "2023-06-14",
+          date: "2025-04-22",
         },
         {
           id: 3,
           message: "Salary processed for June",
           read: true,
-          date: "2023-06-10",
+          date: "2025-04-22",
         },
       ];
       setNotifications(sampleNotifications);

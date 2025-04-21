@@ -8,11 +8,11 @@ function EmployeeDashboard() {
   const navigate = useNavigate();
 
   const menuItems = [
-    { icon: <FaCalendarAlt />, title: "My Attendance", path: "/attendance" },
-    { icon: <FaFileAlt />, title: "My Leaves", path: "/leaves" },
+    { icon: <FaCalendarAlt />, title: "My Attendance", path: "/employee/attendance" },
+    { icon: <FaFileAlt />, title: "My Leaves", path: "/employee/leave-application" },
     { icon: <FaFileAlt />, title: "Apply Leave", path: "/apply-leave" },
-    { icon: <FaMoneyBillWave />, title: "My Salary", path: "/salary" },
-    { icon: <FaBox />, title: "Stock Requests", path: "/stock" },
+    { icon: <FaMoneyBillWave />, title: "My Salary", path: "/employee/salary" },
+    { icon: <FaBox />, title: "Stock Requests", path: "/employee/stock-requests" },
     { icon: <FaUtensils />, title: "Mess Schedule", path: "/mess" },
   ];
 
