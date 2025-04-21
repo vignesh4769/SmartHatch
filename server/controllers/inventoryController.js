@@ -1,22 +1,20 @@
-import Inventory from '../models/Inventory.js';
-import asyncHandler from 'express-async-handler';
+import Inventory from "../models/Inventory.js";
+import asyncHandler from "express-async-handler";
 
 // @desc    Get all inventory items
 // @route   GET /api/inventory
 // @access  Private
 export const getInventoryItems = asyncHandler(async (req, res) => {
   const { category, status } = req.query;
-  
-  const query = { hatchery: req.user.hatcheryId };
   if (category) query.category = category;
   if (status) query.status = status;
 
-  const inventoryItems = await Inventory.find(query).sort({ itemName: 1 });
+  const inventoryItems = await Inventory.find().sort({ itemName: 1 });
 
   res.json({
     success: true,
     count: inventoryItems.length,
-    data: inventoryItems
+    data: inventoryItems,
   });
 });
 
@@ -24,40 +22,22 @@ export const getInventoryItems = asyncHandler(async (req, res) => {
 // @route   POST /api/inventory
 // @access  Private/Admin
 export const addInventoryItem = asyncHandler(async (req, res) => {
-  const {
-    itemName,
-    category,
-    quantity,
-    unit,
-    unitPrice,
-    reorderPoint,
-    supplier,
-    location,
-    description
-  } = req.body;
-
+  const { itemName, quantity, category } = req.body;
   // Only require name, category, and quantity
   if (!itemName || !category || !quantity) {
     res.status(400);
-    throw new Error('Please provide item name, category, and quantity');
+    throw new Error("Please provide item name, category, and quantity");
   }
 
   const inventoryItem = await Inventory.create({
-    hatchery: req.user.hatcheryId,
     itemName,
     category,
     quantity: Number(quantity),
-    unit: unit || 'units',
-    unitPrice: Number(unitPrice || 0),
-    reorderPoint: Number(reorderPoint || 5),
-    supplier: supplier || {},
-    location: location || 'Main Storage',
-    description: description || ''
   });
 
   res.status(201).json({
     success: true,
-    data: inventoryItem
+    data: inventoryItem,
   });
 });
 
@@ -67,25 +47,29 @@ export const addInventoryItem = asyncHandler(async (req, res) => {
 export const updateInventoryItem = asyncHandler(async (req, res) => {
   const inventoryItem = await Inventory.findOne({
     _id: req.params.id,
-    hatchery: req.user.hatcheryId
+    hatchery: req.user.hatcheryId,
   });
 
   if (!inventoryItem) {
     res.status(404);
-    throw new Error('Inventory item not found');
+    throw new Error("Inventory item not found");
   }
 
   // Update only provided fields
   const updates = {};
   if (req.body.itemName) updates.itemName = req.body.itemName;
   if (req.body.category) updates.category = req.body.category;
-  if (req.body.quantity !== undefined) updates.quantity = Number(req.body.quantity);
+  if (req.body.quantity !== undefined)
+    updates.quantity = Number(req.body.quantity);
   if (req.body.unit) updates.unit = req.body.unit;
-  if (req.body.unitPrice !== undefined) updates.unitPrice = Number(req.body.unitPrice);
-  if (req.body.reorderPoint !== undefined) updates.reorderPoint = Number(req.body.reorderPoint);
+  if (req.body.unitPrice !== undefined)
+    updates.unitPrice = Number(req.body.unitPrice);
+  if (req.body.reorderPoint !== undefined)
+    updates.reorderPoint = Number(req.body.reorderPoint);
   if (req.body.supplier) updates.supplier = req.body.supplier;
   if (req.body.location) updates.location = req.body.location;
-  if (req.body.description !== undefined) updates.description = req.body.description;
+  if (req.body.description !== undefined)
+    updates.description = req.body.description;
 
   const updatedItem = await Inventory.findByIdAndUpdate(
     req.params.id,
@@ -95,7 +79,7 @@ export const updateInventoryItem = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: updatedItem
+    data: updatedItem,
   });
 });
 
@@ -105,19 +89,19 @@ export const updateInventoryItem = asyncHandler(async (req, res) => {
 export const deleteInventoryItem = asyncHandler(async (req, res) => {
   const inventoryItem = await Inventory.findOne({
     _id: req.params.id,
-    hatchery: req.user.hatcheryId
+    hatchery: req.user.hatcheryId,
   });
 
   if (!inventoryItem) {
     res.status(404);
-    throw new Error('Inventory item not found');
+    throw new Error("Inventory item not found");
   }
 
   await inventoryItem.deleteOne();
 
   res.json({
     success: true,
-    data: {}
+    data: {},
   });
 });
 
@@ -129,36 +113,37 @@ export const createStockRequest = asyncHandler(async (req, res) => {
 
   if (!itemId || !quantity) {
     res.status(400);
-    throw new Error('Please provide item ID and quantity');
+    throw new Error("Please provide item ID and quantity");
   }
 
   const inventoryItem = await Inventory.findOne({
     _id: itemId,
-    hatchery: req.user.hatcheryId
+    hatchery: req.user.hatcheryId,
   });
 
   if (!inventoryItem) {
     res.status(404);
-    throw new Error('Inventory item not found');
+    throw new Error("Inventory item not found");
   }
 
   inventoryItem.stockRequests = inventoryItem.stockRequests || [];
   inventoryItem.stockRequests.push({
     requestedBy: req.user._id,
     quantity: Number(quantity),
-    urgency: urgency || 'normal',
-    notes: notes || '',
-    status: 'pending'
+    urgency: urgency || "normal",
+    notes: notes || "",
+    status: "pending",
   });
 
   await inventoryItem.save();
 
-  const newRequest = inventoryItem.stockRequests[inventoryItem.stockRequests.length - 1];
-  
+  const newRequest =
+    inventoryItem.stockRequests[inventoryItem.stockRequests.length - 1];
+
   // Populate requestedBy field for response
   const populatedRequest = await Inventory.populate(newRequest, {
-    path: 'requestedBy',
-    select: 'name email'
+    path: "requestedBy",
+    select: "name email",
   });
 
   res.status(201).json({
@@ -166,8 +151,8 @@ export const createStockRequest = asyncHandler(async (req, res) => {
     data: {
       ...populatedRequest.toObject(),
       itemName: inventoryItem.itemName,
-      itemId: inventoryItem._id
-    }
+      itemId: inventoryItem._id,
+    },
   });
 });
 
@@ -179,19 +164,19 @@ export const getStockRequests = asyncHandler(async (req, res) => {
 
   const query = { hatchery: req.user.hatcheryId };
   if (status) {
-    query['stockRequests.status'] = status;
+    query["stockRequests.status"] = status;
   }
 
   const inventoryItems = await Inventory.find(query)
-    .populate('stockRequests.requestedBy', 'name email')
-    .select('itemName stockRequests');
+    .populate("stockRequests.requestedBy", "name email")
+    .select("itemName stockRequests");
 
   const stockRequests = inventoryItems.reduce((acc, item) => {
     if (item.stockRequests && item.stockRequests.length > 0) {
-      const requests = item.stockRequests.map(request => ({
+      const requests = item.stockRequests.map((request) => ({
         ...request.toObject(),
         itemName: item.itemName,
-        itemId: item._id
+        itemId: item._id,
       }));
       acc.push(...requests);
     }
@@ -201,7 +186,7 @@ export const getStockRequests = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     count: stockRequests.length,
-    data: stockRequests
+    data: stockRequests,
   });
 });
 
@@ -214,17 +199,17 @@ export const updateStockRequest = asyncHandler(async (req, res) => {
 
   if (!status) {
     res.status(400);
-    throw new Error('Please provide status');
+    throw new Error("Please provide status");
   }
 
   const inventoryItem = await Inventory.findOne({
     hatchery: req.user.hatcheryId,
-    'stockRequests._id': requestId
+    "stockRequests._id": requestId,
   });
 
   if (!inventoryItem) {
     res.status(404);
-    throw new Error('Stock request not found');
+    throw new Error("Stock request not found");
   }
 
   const stockRequest = inventoryItem.stockRequests.id(requestId);
@@ -236,8 +221,8 @@ export const updateStockRequest = asyncHandler(async (req, res) => {
 
   // Populate requestedBy field for response
   const populatedRequest = await Inventory.populate(stockRequest, {
-    path: 'requestedBy',
-    select: 'name email'
+    path: "requestedBy",
+    select: "name email",
   });
 
   res.json({
@@ -245,7 +230,7 @@ export const updateStockRequest = asyncHandler(async (req, res) => {
     data: {
       ...populatedRequest.toObject(),
       itemName: inventoryItem.itemName,
-      itemId: inventoryItem._id
-    }
+      itemId: inventoryItem._id,
+    },
   });
 });

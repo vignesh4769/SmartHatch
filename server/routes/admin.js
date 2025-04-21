@@ -5,7 +5,9 @@ import {
   getEmployees,
   registerEmployee,
   updateEmployee,
-  deleteEmployee
+  deleteEmployee,
+  getEmployee,
+  
 } from '../controllers/employeeController.js';
 
 import { getPendingLeaves } from '../controllers/adminController.js';
@@ -59,7 +61,9 @@ router.route('/employees')
   .post(registerEmployee);
 
 // Change this route
+// Change this to be consistent
 router.route('/employees/:id')
+  .get(getEmployee)  // Add this if you want to fetch single employee
   .put(updateEmployee)
   .delete(deleteEmployee);
 

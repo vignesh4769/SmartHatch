@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import inventoryApi from '../../api/inventoryApi';
+import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import inventoryApi from "../../api/inventoryApi";
 
 function Inventory() {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [newItem, setNewItem] = useState({ 
-    name: '', 
-    quantity: '',
-    category: 'other'
+  const [newItem, setNewItem] = useState({
+    name: "",
+    quantity: "",
+    category: "other",
   });
 
   // Fetch inventory data on component mount
@@ -21,16 +21,16 @@ function Inventory() {
     try {
       setLoading(true);
       const response = await inventoryApi.getInventoryItems();
-      console.log('Fetched inventory response:', response); // Debug log
+      console.log("Fetched inventory response:", response); // Debug log
       if (response && response.data) {
         setInventory(response.data);
       } else {
-        console.error('Invalid inventory response format:', response);
+        console.error("Invalid inventory response format:", response);
         setInventory([]);
       }
     } catch (error) {
-      console.error('Error fetching inventory:', error);
-      toast.error(error.response?.data?.message || 'Failed to fetch inventory');
+      console.error("Error fetching inventory:", error);
+      toast.error(error.response?.data?.message || "Failed to fetch inventory");
       setInventory([]);
     } finally {
       setLoading(false);
@@ -40,36 +40,36 @@ function Inventory() {
   const handleQuantityChange = async (id, change) => {
     try {
       setSubmitting(true);
-      const item = inventory.find(item => item._id === id);
+      const item = inventory.find((item) => item._id === id);
       const newQuantity = Math.max(0, item.quantity + change);
-      
+
       await inventoryApi.updateInventoryItem(id, {
-        quantity: newQuantity
+        quantity: newQuantity,
       });
-      
+
       // Refresh the inventory list after update
       await fetchInventory();
-      toast.success('Quantity updated successfully');
+      toast.success("Quantity updated successfully");
     } catch (error) {
-      console.error('Error updating quantity:', error);
-      toast.error(error.response?.data?.message || 'Failed to update quantity');
+      console.error("Error updating quantity:", error);
+      toast.error(error.response?.data?.message || "Failed to update quantity");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return;
-    
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
+
     try {
       setSubmitting(true);
       await inventoryApi.deleteInventoryItem(id);
       // Refresh the inventory list after deletion
       await fetchInventory();
-      toast.success('Item deleted successfully');
+      toast.success("Item deleted successfully");
     } catch (error) {
-      console.error('Error deleting item:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete item');
+      console.error("Error deleting item:", error);
+      toast.error(error.response?.data?.message || "Failed to delete item");
     } finally {
       setSubmitting(false);
     }
@@ -78,33 +78,33 @@ function Inventory() {
   const handleAddStock = async (e) => {
     e.preventDefault();
     if (!newItem.name || !newItem.quantity) {
-      toast.error('Please fill in all required fields');
+      toast.error("Please fill in all required fields");
       return;
     }
 
     try {
       setSubmitting(true);
-      console.log('Adding new item:', newItem); // Debug log
+      console.log("Adding new item:", newItem); // Debug log
       const response = await inventoryApi.addInventoryItem(newItem);
-      console.log('Add item response:', response); // Debug log
-      
+      console.log("Add item response:", response); // Debug log
+
       if (response && response.success) {
         // Refresh the inventory list after adding
         await fetchInventory();
-        
-        setNewItem({ 
-          name: '', 
-          quantity: '',
-          category: 'other'
+
+        setNewItem({
+          name: "",
+          quantity: "",
+          category: "other",
         });
-        toast.success('Item added successfully');
+        toast.success("Item added successfully");
       } else {
-        console.error('Invalid response format:', response);
-        toast.error('Failed to add item: Invalid response format');
+        console.error("Invalid response format:", response);
+        toast.error("Failed to add item: Invalid response format");
       }
     } catch (error) {
-      console.error('Error adding item:', error);
-      toast.error(error.response?.data?.message || 'Failed to add item');
+      console.error("Error adding item:", error);
+      toast.error(error.response?.data?.message || "Failed to add item");
     } finally {
       setSubmitting(false);
     }
@@ -121,8 +121,12 @@ function Inventory() {
   return (
     <div className="ml-64 p-8 bg-gray-50">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">Inventory Dashboard</h1>
-        <p className="text-gray-600">Monitor stock levels and manage restocks.</p>
+        <h1 className="text-2xl font-bold text-gray-800">
+          Inventory Dashboard
+        </h1>
+        <p className="text-gray-600">
+          Monitor stock levels and manage restocks.
+        </p>
       </div>
 
       {/* Inventory Table */}
@@ -130,11 +134,21 @@ function Inventory() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-blue-600">
             <tr>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-white">Name</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-white">Quantity</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-white">Actions</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-white">Status</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-white">Delete</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">
+                Name
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">
+                Quantity
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">
+                Actions
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">
+                Status
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-white">
+                Delete
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -145,10 +159,17 @@ function Inventory() {
                 </td>
               </tr>
             ) : (
-              inventory.map(item => (
-                <tr key={item._id} className="hover:bg-blue-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-gray-800">{item.itemName}</td>
-                  <td className="px-6 py-4 text-sm text-gray-800">{item.quantity} {item.unit}</td>
+              inventory.map((item) => (
+                <tr
+                  key={item._id}
+                  className="hover:bg-blue-50 transition-colors"
+                >
+                  <td className="px-6 py-4 text-sm text-gray-800">
+                    {item.itemName}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-800">
+                    {item.quantity} {item.unit}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex space-x-2">
                       <button
@@ -168,7 +189,7 @@ function Inventory() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {item.quantity <= item.reorderPoint ? (
+                    {item.quantity <= 5 ? (
                       <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
                         Request Restock
                       </span>
@@ -196,7 +217,9 @@ function Inventory() {
 
       {/* Add New Stock Form */}
       <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Stock</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">
+          Add New Stock
+        </h2>
         <form onSubmit={handleAddStock} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <input
@@ -212,14 +235,18 @@ function Inventory() {
               type="number"
               placeholder="Quantity"
               value={newItem.quantity}
-              onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+              onChange={(e) =>
+                setNewItem({ ...newItem, quantity: e.target.value })
+              }
               className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
               disabled={submitting}
             />
             <select
               value={newItem.category}
-              onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+              onChange={(e) =>
+                setNewItem({ ...newItem, category: e.target.value })
+              }
               className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={submitting}
             >
@@ -238,7 +265,7 @@ function Inventory() {
             {submitting ? (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto"></div>
             ) : (
-              'Add Stock'
+              "Add Stock"
             )}
           </button>
         </form>

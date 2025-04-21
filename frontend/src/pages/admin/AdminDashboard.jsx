@@ -15,10 +15,10 @@ const AdminDashboard = () => {
       present: 0,
       absent: 0,
       late: 0,
-      'half-day': 0,
-      'on-leave': 0
+      "half-day": 0,
+      "on-leave": 0,
     },
-    recentActivities: []
+    recentActivities: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,7 +40,9 @@ const AdminDashboard = () => {
 
         const dashboardRes = await api.get("/api/admin/dashboard-stats");
         if (!dashboardRes?.data?.data) {
-          throw new Error("Invalid response format from dashboard stats endpoint");
+          throw new Error(
+            "Invalid response format from dashboard stats endpoint"
+          );
         }
 
         setStats(dashboardRes.data.data);
@@ -78,7 +80,11 @@ const AdminDashboard = () => {
   }
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
@@ -128,7 +134,7 @@ const AdminDashboard = () => {
             <Button
               text="Mark Attendance"
               className="btn btn-primary"
-              onClick={() => navigate("/admin/EmployeeAttendance")}
+              onClick={() => navigate("/admin/attendance")}
             />
           </div>
         </div>

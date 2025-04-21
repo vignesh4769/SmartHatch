@@ -4,7 +4,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const EMPLOYEE_API_URL = `${API_BASE_URL}/api/admin/employees`;
 
 
-// Get paginated list of employees
 export const getEmployees = async (page = 1, limit = 10) => {
   try {
     const response = await api.get(`${EMPLOYEE_API_URL}`, {
@@ -16,7 +15,6 @@ export const getEmployees = async (page = 1, limit = 10) => {
   }
 };
 
-// Create/register a new employee (no OTP)
 export const createEmployee = async (employeeData) => {
   try {
     const response = await api.post('/api/auth/admin/employee/register', employeeData);
@@ -33,20 +31,15 @@ export const createEmployee = async (employeeData) => {
   }
 };
 
-// Update employee details
 export const updateEmployee = async (id, employeeData) => {
   try {
-    const response = await api.put(`${EMPLOYEE_API_URL}/${id}`, employeeData, {
-      headers: { "Content-Type": "application/json" },
-    });
-    return response.data;
+    const response = await api.put(`${EMPLOYEE_API_URL}/${id}`, employeeData);
+    return response.data.data;
   } catch (error) {
-    throw error.response?.data?.error || "Failed to update employee";
+    throw error.response?.data?.message || "Failed to update employee";
   }
 };
 
-// Soft delete an employee
-// Soft delete an employee
 export const deleteEmployee = async (id) => {
   try {
     const response = await api.delete(`${EMPLOYEE_API_URL}/${id}`);
@@ -56,24 +49,11 @@ export const deleteEmployee = async (id) => {
   }
 };
 
-// Get employee details by ID
 export const getEmployeeDetails = async (id) => {
   try {
     const response = await api.get(`${EMPLOYEE_API_URL}/${id}`);
-    return response.data;
+    return response.data.data;
   } catch (error) {
-    throw error.response?.data?.error || "Failed to fetch employee details";
-  }
-};
-
-// Search employees by query
-export const searchEmployees = async (query) => {
-  try {
-    const response = await api.get(`${EMPLOYEE_API_URL}/search`, {
-      params: { query },
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data?.error || "Search failed";
+    throw error.response?.data?.message || "Failed to fetch employee details";
   }
 };

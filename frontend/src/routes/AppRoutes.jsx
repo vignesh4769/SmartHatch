@@ -20,7 +20,7 @@ const InventoryManagement = React.lazy(() => import("../pages/admin/InventoryMan
 const FinancialDashboard = React.lazy(() => import("../pages/admin/FinancialDashboard"));
 const MessManagement = React.lazy(() => import("../pages/admin/MessManagement"));
 const EmployeeRegistration = React.lazy(() => import("../pages/admin/EmployeeRegistration"));
-const EmployeeForm = React.lazy(() => import("../pages/employee/EmployeeForm.jsx"));
+const EditEmployee = React.lazy(() => import("../pages/admin/EditEmployee"));
 const VisitorLog = React.lazy(() => import("../pages/admin/VisitorLog"));
 
 // Employee Pages
@@ -77,7 +77,7 @@ const AppRoutes = () => {
             path="/admin/employees/:id/edit"
             element={
               <Suspense fallback={<LoadingSpinner />}>
-                <EmployeeForm />
+                <EditEmployee />
               </Suspense>
             }
           />

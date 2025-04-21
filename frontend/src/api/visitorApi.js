@@ -2,6 +2,7 @@ import api from './config';
 
 // Get all visitors
 export const getVisitors = async () => {
+  console.log('object')
   const response = await api.get('/api/admin/visitors');
   return response.data;
 };

@@ -134,9 +134,8 @@ const EmployeeManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
-                          onClick={() =>
-                            navigate(`/admin/employees/${employee._id}/edit`)
-                          }
+                       
+onClick={() => navigate(`/admin/employees/${employee._id}/edit`, { state: { employee } })}
                           className="text-indigo-600 hover:text-indigo-900 mr-4"
                         >
                           Edit

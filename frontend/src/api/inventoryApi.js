@@ -7,14 +7,14 @@ const inventoryApi = {
     if (category) params.category = category;
     if (status) params.status = status;
     
-    const response = await api.get('/api/inventory', { params });
+    const response = await api.get('/api/admin/inventory', { params });
     return response.data;
   },
 
   // Add new inventory item
   addInventoryItem: async (itemData) => {
     console.log('Sending inventory data:', itemData); // Debug log
-    const response = await api.post('/api/inventory', {
+    const response = await api.post('/api/admin/inventory', {
       itemName: itemData.name,
       category: itemData.category || 'other',
       quantity: itemData.quantity
@@ -25,13 +25,13 @@ const inventoryApi = {
 
   // Update inventory item
   updateInventoryItem: async (id, itemData) => {
-    const response = await api.put(`/api/inventory/${id}`, itemData);
+    const response = await api.put(`/api/admin/inventory/${id}`, itemData);
     return response.data;
   },
 
   // Delete inventory item
   deleteInventoryItem: async (id) => {
-    const response = await api.delete(`/api/inventory/${id}`);
+    const response = await api.delete(`/api/admin/inventory/${id}`);
     return response.data;
   },
 

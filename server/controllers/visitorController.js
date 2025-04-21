@@ -7,52 +7,17 @@ import asyncHandler from "express-async-handler";
 // @route   POST /api/visitors
 // @access  Private
 export const registerVisitor = asyncHandler(async (req, res) => {
-  const {
-    name,
-    phone,
-    email,
-    company,
-    purpose,
-    hostEmployeeId,
-    expectedDuration,
-    idType,
-    idNumber,
-  } = req.body;
-
-  if (!name || !phone || !purpose || !hostEmployeeId) {
+  const { name, reason } = req.body;
+  if (!name || !reason) {
     res.status(400);
     throw new Error("Please provide all required fields");
   }
 
-  if (!mongoose.Types.ObjectId.isValid(hostEmployeeId)) {
-    res.status(400);
-    throw new Error("Invalid host employee ID");
-  }
-
-  const hostEmployee = await Employee.findOne({
-    _id: hostEmployeeId,
-    hatcheryId: req.user.hatcheryId,
-  });
-
-  if (!hostEmployee) {
-    res.status(404);
-    throw new Error("Host employee not found");
-  }
-
   const visitor = await Visitor.create({
-    hatchery: req.user.hatcheryId,
     name,
-    phone,
-    email,
-    company,
-    purpose,
-    hostEmployee: hostEmployeeId,
-    expectedDuration,
-    idType,
-    idNumber,
+    reason,
     checkIn: {
       time: Date.now(),
-      by: req.user._id,
     },
   });
 
