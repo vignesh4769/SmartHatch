@@ -1,47 +1,94 @@
-import { useState } from 'react';
-import { FaEdit, FaTrash } from 'react-icons/fa';
+import { useState, useEffect } from "react";
+import { FaEdit, FaTrash, FaPaperPlane } from "react-icons/fa";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../api/config";
+import { toast } from "react-toastify";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 function Financial() {
+  const { user } = useAuth();
   const [records, setRecords] = useState([]);
   const [newRecord, setNewRecord] = useState({
-    date: '',
-    description: '',
-    amount: '',
-    type: 'income'
+    date: "",
+    description: "",
+    amount: "",
+    type: "income",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [showSalaryReport, setShowSalaryReport] = useState(true);
+  const [employees, setEmployees] = useState([]);
+  const [editingSalary, setEditingSalary] = useState(null);
+  const [tempSalary, setTempSalary] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Fetch employees from database
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/api/admin/employees");
+        const activeEmployees = response.data.data.filter(
+          (emp) => emp.deletedAt === null
+        );
+        
+        // Map to the expected employee structure
+        const mappedEmployees = activeEmployees.map(emp => ({
+          id: emp._id,
+          name: `${emp.firstName} ${emp.lastName}`,
+          email: emp.email,
+          department: emp.department,
+          baseSalary: emp.salary || 0,
+          lastPayment: emp.lastPayment || null,
+          initials: `${emp.firstName?.[0] || ''}${emp.lastName?.[0] || ''}`.toUpperCase()
+        }));
+        
+        setEmployees(mappedEmployees);
+      } catch (err) {
+        toast.error("Failed to fetch employees");
+        console.error("Error fetching employees:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchEmployees();
+    }
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewRecord(prev => ({
+    setNewRecord((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!newRecord.date || !newRecord.description || !newRecord.amount) {
-      alert('Please fill all fields');
+      alert("Please fill all fields");
       return;
     }
-    
+
     if (isEditing) {
-      setRecords(prev => prev.map(record => 
-        record.id === editId ? { ...newRecord, id: editId } : record
-      ));
+      setRecords((prev) =>
+        prev.map((record) =>
+          record.id === editId ? { ...newRecord, id: editId } : record
+        )
+      );
       setIsEditing(false);
       setEditId(null);
     } else {
-      setRecords(prev => [...prev, { ...newRecord, id: Date.now() }]);
+      setRecords((prev) => [...prev, { ...newRecord, id: Date.now() }]);
     }
-    
+
     setNewRecord({
-      date: '',
-      description: '',
-      amount: '',
-      type: 'income'
+      date: "",
+      description: "",
+      amount: "",
+      type: "income",
     });
   };
 
@@ -52,44 +99,122 @@ function Financial() {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this record?')) {
-      setRecords(prev => prev.filter(record => record.id !== id));
+    if (window.confirm("Are you sure you want to delete this record?")) {
+      setRecords((prev) => prev.filter((record) => record.id !== id));
+    }
+  };
+
+  const handleSalaryEdit = (employee) => {
+    setEditingSalary(employee.id);
+    setTempSalary(employee.baseSalary.toString());
+  };
+
+  const handleSalaryUpdate = async (employeeId) => {
+    if (!tempSalary || isNaN(tempSalary)) {
+      alert("Please enter a valid salary amount");
+      return;
+    }
+
+    try {
+      // Update in database
+      await api.patch(`/api/admin/employees/${employeeId}`, {
+        salary: parseFloat(tempSalary),
+      });
+
+      // Update local state
+      setEmployees((prev) =>
+        prev.map((emp) =>
+          emp.id === employeeId
+            ? { ...emp, baseSalary: parseFloat(tempSalary) }
+            : emp
+        )
+      );
+      setEditingSalary(null);
+      setTempSalary("");
+      toast.success("Salary updated successfully");
+    } catch (err) {
+      toast.error("Failed to update salary");
+      console.error("Error updating salary:", err);
+    }
+  };
+
+  const handlePaySalary = async (employeeId) => {
+    try {
+      // Update in database
+      await api.post(`/api/admin/employees/${employeeId}/pay-salary`, {
+        paymentDate: new Date().toISOString(),
+      });
+
+      // Update local state
+      setEmployees((prev) =>
+        prev.map((emp) =>
+          emp.id === employeeId
+            ? { ...emp, lastPayment: new Date().toISOString() }
+            : emp
+        )
+      );
+      toast.success("Salary paid successfully");
+    } catch (err) {
+      toast.error("Failed to pay salary");
+      console.error("Error paying salary:", err);
     }
   };
 
   const totalIncome = records
-    .filter(record => record.type === 'income')
+    .filter((record) => record.type === "income")
     .reduce((sum, record) => sum + parseFloat(record.amount), 0);
 
   const totalExpense = records
-    .filter(record => record.type === 'expense')
+    .filter((record) => record.type === "expense")
     .reduce((sum, record) => sum + parseFloat(record.amount), 0);
 
+  // Calculate total salary expenses
+  const totalSalaries = employees.reduce(
+    (sum, emp) => sum + (emp.baseSalary || 0),
+    0
+  );
+
+  if (loading) return <LoadingSpinner />;
+
   return (
-    <div className="ml-64 p-8 bg-gray-50">
+    <div className="ml-64 p-8 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-gray-800">Financial Dashboard</h1>
-        
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <h1 className="text-3xl font-bold mb-8 text-gray-800">
+          Financial Dashboard
+        </h1>
+
+        {/* Summary Cards - Updated to include salary expenses */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
             <h3 className="text-lg text-gray-600 mb-2">Total Balance</h3>
-            <p className="text-2xl font-bold">₹{(totalIncome - totalExpense).toFixed(2)}</p>
+            <p className="text-2xl font-bold">
+              ₹{(totalIncome - totalExpense - totalSalaries).toFixed(2)}
+            </p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
             <h3 className="text-lg text-gray-600 mb-2">Total Income</h3>
-            <p className="text-2xl font-bold text-green-600">₹{totalIncome.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-green-600">
+              ₹{totalIncome.toFixed(2)}
+            </p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
-            <h3 className="text-lg text-gray-600 mb-2">Total Expenses</h3>
-            <p className="text-2xl font-bold text-red-600">₹{totalExpense.toFixed(2)}</p>
+            <h3 className="text-lg text-gray-600 mb-2">Operating Expenses</h3>
+            <p className="text-2xl font-bold text-red-600">
+              ₹{totalExpense.toFixed(2)}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+            <h3 className="text-lg text-gray-600 mb-2">Salary Expenses</h3>
+            <p className="text-2xl font-bold text-purple-600">
+              ₹{totalSalaries.toFixed(2)}
+            </p>
           </div>
         </div>
 
-        {/* Form */}
+        {/* Financial Records Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">
-            {isEditing ? 'Edit Record' : 'Add New Record'}
+            {isEditing ? "Edit Record" : "Add New Record"}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -129,39 +254,55 @@ function Financial() {
                 <option value="expense">Expense</option>
               </select>
             </div>
-            <button 
+            <button
               type="submit"
               className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-200"
             >
-              {isEditing ? 'Update Record' : 'Add Record'}
+              {isEditing ? "Update Record" : "Add Record"}
             </button>
           </form>
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        {/* Financial Records Table */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Description
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {records.map(record => (
+              {records.map((record) => (
                 <tr key={record.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">{record.date}</td>
-                  <td className="px-6 py-4 text-gray-700">{record.description}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                    {record.date}
+                  </td>
+                  <td className="px-6 py-4 text-gray-700">
+                    {record.description}
+                  </td>
                   <td className="px-6 py-4 text-gray-700">₹{record.amount}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs ${
-                      record.type === 'income' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs ${
+                        record.type === "income"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {record.type}
                     </span>
                   </td>
@@ -183,13 +324,135 @@ function Financial() {
               ))}
               {records.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-                    No records found
+                  <td
+                    colSpan="5"
+                    className="px-6 py-4 text-center text-gray-500"
+                  >
+                    No financial records found
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Salary Reports Section */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+          <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center bg-white">
+            <h2 className="text-2xl font-semibold text-gray-800">
+              Salary Management
+            </h2>
+            <button
+              onClick={() => setShowSalaryReport(!showSalaryReport)}
+              className="bg-blue-600 text-white px-6 py-2.5 rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <span>{showSalaryReport ? "Hide" : "Show"} Salary Report</span>
+            </button>
+          </div>
+
+          {showSalaryReport && (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Employee
+                    </th>
+                    <th className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Department
+                    </th>
+                    <th className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Base Salary
+                    </th>
+                    <th className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Last Payment
+                    </th>
+                    <th className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {employees.map((employee) => (
+                    <tr key={employee.id} className="hover:bg-gray-50">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-blue-600 font-medium">
+                              {employee.initials}
+                            </span>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {employee.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {employee.email}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5 text-sm text-gray-500">
+                        {employee.department}
+                      </td>
+                      <td className="px-8 py-5">
+                        {editingSalary === employee.id ? (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-500">₹</span>
+                            <input
+                              type="number"
+                              value={tempSalary}
+                              onChange={(e) => setTempSalary(e.target.value)}
+                              className="border rounded px-2 py-1 w-32 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            />
+                            <button
+                              onClick={() => handleSalaryUpdate(employee.id)}
+                              className="text-green-600 hover:text-green-800 text-sm"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingSalary(null)}
+                              className="text-gray-600 hover:text-gray-800 text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-900">
+                            ₹{employee.baseSalary}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-8 py-5 text-sm text-gray-500">
+                        {employee.lastPayment
+                          ? new Date(employee.lastPayment).toLocaleDateString()
+                          : "No payment yet"}
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center space-x-4">
+                          <button
+                            onClick={() => handleSalaryEdit(employee)}
+                            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+                          >
+                            <FaEdit className="h-4 w-4" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handlePaySalary(employee.id)}
+                            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+                          >
+                            <FaPaperPlane className="h-4 w-4" />
+                            <span>Pay Salary</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -2,9 +2,6 @@ import Financial from '../models/Financial.js';
 import Expense from '../models/Expense.js';
 import asyncHandler from 'express-async-handler';
 
-// @desc    Get financial statistics
-// @route   GET /api/financials
-// @access  Private/Admin
 export const getFinancialStats = asyncHandler(async (req, res) => {
   const financial = await Financial.findOne({
     hatchery: req.user.hatcheryId,

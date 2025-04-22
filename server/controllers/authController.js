@@ -4,8 +4,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
-import asyncHandler from "express-async-handler";
-import { getEmployeeDetails } from "./adminController.js";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
