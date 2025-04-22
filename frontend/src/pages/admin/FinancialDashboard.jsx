@@ -22,6 +22,7 @@ function Financial() {
   const [editingSalary, setEditingSalary] = useState(null);
   const [tempSalary, setTempSalary] = useState("");
   const [loading, setLoading] = useState(true);
+  const [recordsLoading, setRecordsLoading] = useState(false);
 
   // Fetch employees from database
   useEffect(() => {
@@ -33,7 +34,6 @@ function Financial() {
           (emp) => emp.deletedAt === null
         );
         
-        // Map to the expected employee structure
         const mappedEmployees = activeEmployees.map(emp => ({
           id: emp._id,
           name: `${emp.firstName} ${emp.lastName}`,
@@ -69,23 +69,33 @@ function Financial() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newRecord.date || !newRecord.description || !newRecord.amount) {
-      alert("Please fill all fields");
+      toast.error("Please fill all fields");
       return;
     }
-  
+
     try {
+      // Format data before sending
+      const formattedRecord = {
+        ...newRecord,
+        date: new Date(newRecord.date).toISOString(),
+        amount: parseFloat(newRecord.amount)
+      };
+
       if (isEditing) {
-        await financialApi.updateTransaction(editId, newRecord);
-        setRecords((prev) =>
-          prev.map((record) =>
-            record.id === editId ? { ...newRecord, id: editId } : record
+        const updatedRecord = await financialApi.updateTransaction(editId, formattedRecord);
+        setRecords(prev => 
+          prev.map(record => 
+            record._id === editId || record.id === editId ? updatedRecord : record
           )
         );
+        toast.success("Transaction updated successfully");
       } else {
-        const savedRecord = await financialApi.recordTransaction(newRecord);
-        setRecords((prev) => [...prev, savedRecord]);
+        const savedRecord = await financialApi.recordTransaction(formattedRecord);
+        setRecords(prev => [...prev, savedRecord]);
+        toast.success("Transaction added successfully");
       }
-  
+
+      // Reset form
       setNewRecord({
         date: "",
         description: "",
@@ -95,30 +105,34 @@ function Financial() {
       setIsEditing(false);
       setEditId(null);
     } catch (error) {
-      toast.error("Failed to save transaction");
-      console.error("Save error:", error);
+      toast.error(`Failed to ${isEditing ? 'update' : 'add'} transaction`);
+      console.error("Transaction error:", error);
     }
   };
-  
 
   const handleEdit = (record) => {
     setIsEditing(true);
-    setEditId(record.id);
-    setNewRecord(record);
+    setEditId(record._id || record.id);
+    // Convert ISO date to local date format for the input
+    const localDate = record.date ? new Date(record.date).toISOString().split('T')[0] : "";
+    setNewRecord({
+      ...record,
+      date: localDate
+    });
   };
 
   const handleDelete = async (id) => {
-  if (window.confirm("Are you sure you want to delete this record?")) {
-    try {
-      await financialApi.deleteTransaction(id);
-      setRecords((prev) => prev.filter((record) => record.id !== id));
-    } catch (error) {
-      toast.error("Failed to delete record");
-      console.error("Delete error:", error);
+    if (window.confirm("Are you sure you want to delete this record?")) {
+      try {
+        await financialApi.deleteTransaction(id);
+        setRecords(prev => prev.filter(record => (record._id || record.id) !== id));
+        toast.success("Transaction deleted successfully");
+      } catch (error) {
+        toast.error("Failed to delete transaction");
+        console.error("Delete error:", error);
+      }
     }
-  }
-};
-
+  };
 
   const handleSalaryEdit = (employee) => {
     setEditingSalary(employee.id);
@@ -127,19 +141,17 @@ function Financial() {
 
   const handleSalaryUpdate = async (employeeId) => {
     if (!tempSalary || isNaN(tempSalary)) {
-      alert("Please enter a valid salary amount");
+      toast.error("Please enter a valid salary amount");
       return;
     }
 
     try {
-      // Update in database
       await api.patch(`/api/admin/employees/${employeeId}`, {
         salary: parseFloat(tempSalary),
       });
 
-      // Update local state
-      setEmployees((prev) =>
-        prev.map((emp) =>
+      setEmployees(prev =>
+        prev.map(emp =>
           emp.id === employeeId
             ? { ...emp, baseSalary: parseFloat(tempSalary) }
             : emp
@@ -153,31 +165,32 @@ function Financial() {
       console.error("Error updating salary:", err);
     }
   };
+
   useEffect(() => {
     const fetchRecords = async () => {
       try {
+        setRecordsLoading(true);
         const data = await financialApi.getTransactions();
         setRecords(data);
       } catch (err) {
         toast.error("Failed to load financial records");
         console.error("Error fetching transactions:", err);
+      } finally {
+        setRecordsLoading(false);
       }
     };
   
     fetchRecords();
   }, []);
-  
 
   const handlePaySalary = async (employeeId) => {
     try {
-      // Update in database
       await api.post(`/api/admin/employees/${employeeId}/pay-salary`, {
         paymentDate: new Date().toISOString(),
       });
 
-      // Update local state
-      setEmployees((prev) =>
-        prev.map((emp) =>
+      setEmployees(prev =>
+        prev.map(emp =>
           emp.id === employeeId
             ? { ...emp, lastPayment: new Date().toISOString() }
             : emp
@@ -190,15 +203,15 @@ function Financial() {
     }
   };
 
+  // Calculate totals
   const totalIncome = records
-    .filter((record) => record.type === "income")
-    .reduce((sum, record) => sum + parseFloat(record.amount), 0);
+    .filter(record => record.type === "income")
+    .reduce((sum, record) => sum + parseFloat(record.amount || 0), 0);
 
   const totalExpense = records
-    .filter((record) => record.type === "expense")
-    .reduce((sum, record) => sum + parseFloat(record.amount), 0);
+    .filter(record => record.type === "expense")
+    .reduce((sum, record) => sum + parseFloat(record.amount || 0), 0);
 
-  // Calculate total salary expenses
   const totalSalaries = employees.reduce(
     (sum, emp) => sum + (emp.baseSalary || 0),
     0
@@ -213,7 +226,7 @@ function Financial() {
           Financial Dashboard
         </h1>
 
-        {/* Summary Cards - Updated to include salary expenses */}
+        {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
             <h3 className="text-lg text-gray-600 mb-2">Total Balance</h3>
@@ -244,7 +257,7 @@ function Financial() {
         {/* Financial Records Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">
-            {isEditing ? "Edit Record" : "Add New Record"}
+            {isEditing ? "Edit Transaction" : "Add New Transaction"}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -253,6 +266,7 @@ function Financial() {
                 name="date"
                 value={newRecord.date}
                 onChange={handleInputChange}
+                required
                 className="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
@@ -261,6 +275,7 @@ function Financial() {
                 value={newRecord.description}
                 onChange={handleInputChange}
                 placeholder="Description"
+                required
                 className="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <div className="relative">
@@ -271,6 +286,9 @@ function Financial() {
                   value={newRecord.amount}
                   onChange={handleInputChange}
                   placeholder="Amount"
+                  required
+                  min="0"
+                  step="0.01"
                   className="pl-7 border border-gray-300 rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -284,86 +302,119 @@ function Financial() {
                 <option value="expense">Expense</option>
               </select>
             </div>
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-200"
-            >
-              {isEditing ? "Update Record" : "Add Record"}
-            </button>
+            <div className="flex gap-4">
+              <button
+                type="submit"
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-200"
+              >
+                {isEditing ? "Update Transaction" : "Add Transaction"}
+              </button>
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditId(null);
+                    setNewRecord({
+                      date: "",
+                      description: "",
+                      amount: "",
+                      type: "income",
+                    });
+                  }}
+                  className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600 transition duration-200"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </form>
         </div>
 
         {/* Financial Records Table */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Description
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {records.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                    {record.date}
-                  </td>
-                  <td className="px-6 py-4 text-gray-700">
-                    {record.description}
-                  </td>
-                  <td className="px-6 py-4 text-gray-700">₹{record.amount}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs ${
-                        record.type === "income"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {record.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => handleEdit(record)}
-                      className="text-blue-600 hover:text-blue-800 mr-3"
-                    >
-                      <FaEdit size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(record.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <FaTrash size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {records.length === 0 && (
+          {recordsLoading ? (
+            <div className="p-8 flex justify-center">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td
-                    colSpan="5"
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    No financial records found
-                  </td>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {records.map((record) => {
+                  const recordId = record._id || record.id;
+                  return (
+                    <tr key={recordId} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                        {record.date ? new Date(record.date).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">
+                        {record.description}
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">
+                        ₹{parseFloat(record.amount || 0).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs ${
+                            record.type === "income"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {record.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleEdit(record)}
+                          className="text-blue-600 hover:text-blue-800 mr-3"
+                          title="Edit"
+                        >
+                          <FaEdit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(recordId)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete"
+                        >
+                          <FaTrash size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {records.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="px-6 py-4 text-center text-gray-500"
+                    >
+                      No financial records found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Salary Reports Section */}
@@ -434,6 +485,8 @@ function Financial() {
                               value={tempSalary}
                               onChange={(e) => setTempSalary(e.target.value)}
                               className="border rounded px-2 py-1 w-32 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              min="0"
+                              step="100"
                             />
                             <button
                               onClick={() => handleSalaryUpdate(employee.id)}
@@ -450,7 +503,7 @@ function Financial() {
                           </div>
                         ) : (
                           <span className="text-sm text-gray-900">
-                            ₹{employee.baseSalary}
+                            ₹{employee.baseSalary.toFixed(2)}
                           </span>
                         )}
                       </td>

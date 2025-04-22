@@ -18,14 +18,7 @@ import {
   updateAttendance,
   submitAttendanceRecords,
 } from '../controllers/attendanceController.js';
-import {
-  createFinancialRecord,
-  recordTransaction,
-  getFinancialStats,
-  getTransactions,
-  updateTransaction,
-  deleteTransaction
-} from '../controllers/financialController.js';
+
 import {
   addInventoryItem,
   getInventoryItems,
@@ -71,19 +64,6 @@ router.route('/attendance')
 
 router.post('/attendance/submit', submitAttendanceRecords);
 router.put('/attendance/:id', updateAttendance);
-
-// Financial management
-router.route('/financials')
-  .post(createFinancialRecord)
-  .get(getFinancialStats);
-
-router.route('/financials/transactions')
-  .post(recordTransaction)
-  .get(getTransactions);
-
-router.route('/financials/transactions/:id')
-  .put(updateTransaction)
-  .delete(deleteTransaction);
 
 // Inventory management
 router.route('/inventory')
