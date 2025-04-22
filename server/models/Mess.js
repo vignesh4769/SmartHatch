@@ -10,58 +10,37 @@ const messSchema = new mongoose.Schema({
     enum: ['breakfast', 'lunch', 'dinner'],
     required: true
   },
-  menu: {
-    type: String,
-    required: true
-  },
-  items: [{
+  menu: [{
     name: {
       type: String,
       required: true
     },
-    quantity: {
-      type: Number,
-      required: true
-    },
-    unit: {
+    category: {
       type: String,
-      required: true
     },
     cost: {
       type: Number,
-      required: true
     }
   }],
-  totalCost: {
+  startTime: {
+    type: String,
+    required: true
+  },
+  endTime: {
+    type: String,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['scheduled', 'cancelled'],
+    default: 'scheduled'
+  },
+  capacity: {
     type: Number,
-    required: true
+    default: 30
   },
-  numberOfPeople: {
-    type: Number,
-    required: true
-  },
-  costPerPerson: {
-    type: Number,
-    required: true
-  },
-  preparedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-    required: true
-  },
-  notes: String
+  specialNotes: String
 }, { timestamps: true });
 
-// Pre-save middleware to calculate cost per person
-messSchema.pre('save', function(next) {
-  if (this.totalCost && this.numberOfPeople) {
-    this.costPerPerson = Math.round((this.totalCost / this.numberOfPeople) * 100) / 100;
-  }
-  next();
-});
-
-// Index for unique mess entry per date and meal type
-messSchema.index({ date: 1, mealType: 1 }, { unique: true });
-
-const Mess = mongoose.model('Mess', messSchema);
-export default Mess;
+const MessSchedule = mongoose.model('MessSchedule', messSchema);
+export default MessSchedule;
