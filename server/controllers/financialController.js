@@ -1,6 +1,28 @@
 import Financial from '../models/Financial.js';
 import Expense from '../models/Expense.js';
 import asyncHandler from 'express-async-handler';
+import Transaction from '../models/Transaction.js';
+
+export const recordTransaction = async (req, res) => {
+  try {
+    const { date, description, amount, type } = req.body;
+    const transaction = new Transaction({ date, description, amount, type });
+    await transaction.save();
+    res.status(201).json(transaction);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to record transaction', error });
+  }
+};
+
+export const getTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find().sort({ date: -1 });
+    res.status(200).json(transactions);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch transactions', error });
+  }
+};
+
 
 export const getFinancialStats = asyncHandler(async (req, res) => {
   const financial = await Financial.findOne({
@@ -28,25 +50,6 @@ export const getFinancialStats = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get all transactions
-// @route   GET /api/financials/transactions
-// @access  Private/Admin
-export const getTransactions = asyncHandler(async (req, res) => {
-  const financial = await Financial.findOne({
-    hatchery: req.user.hatcheryId,
-    fiscalYear: new Date().getFullYear().toString()
-  });
-
-  if (!financial) {
-    res.status(404);
-    throw new Error('Financial record not found for current fiscal year');
-  }
-
-  res.json({
-    success: true,
-    data: financial.transactions
-  });
-});
 
 // @desc    Create or update financial record for fiscal year
 // @route   POST /api/financials
@@ -91,50 +94,7 @@ export const createFinancialRecord = asyncHandler(async (req, res) => {
 // @desc    Record a financial transaction
 // @route   POST /api/financials/transactions
 // @access  Private/Admin
-export const recordTransaction = asyncHandler(async (req, res) => {
-  const {
-    type,
-    category,
-    amount,
-    description,
-    paymentMethod,
-    reference,
-    date
-  } = req.body;
 
-  if (!type || !category || !amount || !description || !paymentMethod) {
-    res.status(400);
-    throw new Error('Please provide all required fields');
-  }
-
-  const financial = await Financial.findOne({
-    hatchery: req.user.hatcheryId,
-    fiscalYear: new Date().getFullYear().toString()
-  });
-
-  if (!financial) {
-    res.status(404);
-    throw new Error('Financial record not found for current fiscal year');
-  }
-
-  financial.transactions.push({
-    type,
-    category,
-    amount,
-    description,
-    paymentMethod,
-    reference,
-    date: date || new Date()
-  });
-
-  await financial.save();
-  await financial.updateRemainingBudget();
-
-  res.json({
-    success: true,
-    data: financial.transactions[financial.transactions.length - 1]
-  });
-});
 
 // @desc    Get financial summary
 // @route   GET /api/financials/summary

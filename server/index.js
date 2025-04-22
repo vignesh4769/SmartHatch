@@ -9,7 +9,7 @@ import { protect } from './middleware/authMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/admin.js';
 import VistorRouter from './routes/VisitorRoutes.js';
-
+import financialRoutes from './routes/financialRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -24,6 +24,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', VistorRouter);
+app.use('/api/financials', financialRoutes);
 app.get('/api/health', protect, (req, res) => {
   res.json({ status: 'OK' });
 });

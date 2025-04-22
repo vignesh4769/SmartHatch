@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import api from "../../api/config";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import financialApi from "../../api/financialApi";
 
 function Financial() {
   const { user } = useAuth();
@@ -65,32 +66,40 @@ function Financial() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newRecord.date || !newRecord.description || !newRecord.amount) {
       alert("Please fill all fields");
       return;
     }
-
-    if (isEditing) {
-      setRecords((prev) =>
-        prev.map((record) =>
-          record.id === editId ? { ...newRecord, id: editId } : record
-        )
-      );
+  
+    try {
+      if (isEditing) {
+        await financialApi.updateTransaction(editId, newRecord);
+        setRecords((prev) =>
+          prev.map((record) =>
+            record.id === editId ? { ...newRecord, id: editId } : record
+          )
+        );
+      } else {
+        const savedRecord = await financialApi.recordTransaction(newRecord);
+        setRecords((prev) => [...prev, savedRecord]);
+      }
+  
+      setNewRecord({
+        date: "",
+        description: "",
+        amount: "",
+        type: "income",
+      });
       setIsEditing(false);
       setEditId(null);
-    } else {
-      setRecords((prev) => [...prev, { ...newRecord, id: Date.now() }]);
+    } catch (error) {
+      toast.error("Failed to save transaction");
+      console.error("Save error:", error);
     }
-
-    setNewRecord({
-      date: "",
-      description: "",
-      amount: "",
-      type: "income",
-    });
   };
+  
 
   const handleEdit = (record) => {
     setIsEditing(true);
@@ -98,11 +107,18 @@ function Financial() {
     setNewRecord(record);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this record?")) {
+  const handleDelete = async (id) => {
+  if (window.confirm("Are you sure you want to delete this record?")) {
+    try {
+      await financialApi.deleteTransaction(id);
       setRecords((prev) => prev.filter((record) => record.id !== id));
+    } catch (error) {
+      toast.error("Failed to delete record");
+      console.error("Delete error:", error);
     }
-  };
+  }
+};
+
 
   const handleSalaryEdit = (employee) => {
     setEditingSalary(employee.id);
@@ -137,6 +153,20 @@ function Financial() {
       console.error("Error updating salary:", err);
     }
   };
+  useEffect(() => {
+    const fetchRecords = async () => {
+      try {
+        const data = await financialApi.getTransactions();
+        setRecords(data);
+      } catch (err) {
+        toast.error("Failed to load financial records");
+        console.error("Error fetching transactions:", err);
+      }
+    };
+  
+    fetchRecords();
+  }, []);
+  
 
   const handlePaySalary = async (employeeId) => {
     try {
