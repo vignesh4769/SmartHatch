@@ -28,7 +28,7 @@ const SidebarEmployee = () => {
           className="w-12 h-12 rounded-full" 
           alt="Employee"
           onError={(e) => {
-            e.target.src = "https://via.placeholder.com/48";
+            e.target.src = "/images/default-avatar.svg";
           }}
         />
         <h2 className="ml-3 text-xl font-bold">Employee Portal</h2>

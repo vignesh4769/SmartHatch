@@ -19,8 +19,6 @@ function Financial() {
   const [editId, setEditId] = useState(null);
   const [showSalaryReport, setShowSalaryReport] = useState(true);
   const [employees, setEmployees] = useState([]);
-  const [editingSalary, setEditingSalary] = useState(null);
-  const [tempSalary, setTempSalary] = useState("");
   const [loading, setLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(false);
 
@@ -134,38 +132,6 @@ function Financial() {
     }
   };
 
-  const handleSalaryEdit = (employee) => {
-    setEditingSalary(employee.id);
-    setTempSalary(employee.baseSalary.toString());
-  };
-
-  const handleSalaryUpdate = async (employeeId) => {
-    if (!tempSalary || isNaN(tempSalary)) {
-      toast.error("Please enter a valid salary amount");
-      return;
-    }
-
-    try {
-      await api.patch(`/api/admin/employees/${employeeId}`, {
-        salary: parseFloat(tempSalary),
-      });
-
-      setEmployees(prev =>
-        prev.map(emp =>
-          emp.id === employeeId
-            ? { ...emp, baseSalary: parseFloat(tempSalary) }
-            : emp
-        )
-      );
-      setEditingSalary(null);
-      setTempSalary("");
-      toast.success("Salary updated successfully");
-    } catch (err) {
-      toast.error("Failed to update salary");
-      console.error("Error updating salary:", err);
-    }
-  };
-
   useEffect(() => {
     const fetchRecords = async () => {
       try {
@@ -185,8 +151,13 @@ function Financial() {
 
   const handlePaySalary = async (employeeId) => {
     try {
+      const employee = employees.find(emp => emp.id === employeeId);
       await api.post(`/api/admin/employees/${employeeId}/pay-salary`, {
         paymentDate: new Date().toISOString(),
+        notification: {
+          message: `Salary of ₹${employee.baseSalary.toFixed(2)} processed`, 
+          type: 'salary'
+        }
       });
 
       setEmployees(prev =>
@@ -476,36 +447,8 @@ function Financial() {
                       <td className="px-8 py-5 text-sm text-gray-500">
                         {employee.department}
                       </td>
-                      <td className="px-8 py-5">
-                        {editingSalary === employee.id ? (
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-500">₹</span>
-                            <input
-                              type="number"
-                              value={tempSalary}
-                              onChange={(e) => setTempSalary(e.target.value)}
-                              className="border rounded px-2 py-1 w-32 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                              min="0"
-                              step="100"
-                            />
-                            <button
-                              onClick={() => handleSalaryUpdate(employee.id)}
-                              className="text-green-600 hover:text-green-800 text-sm"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingSalary(null)}
-                              className="text-gray-600 hover:text-gray-800 text-sm"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-900">
-                            ₹{employee.baseSalary.toFixed(2)}
-                          </span>
-                        )}
+                      <td className="px-8 py-5 text-sm text-gray-900">
+                        ₹{employee.baseSalary.toFixed(2)}
                       </td>
                       <td className="px-8 py-5 text-sm text-gray-500">
                         {employee.lastPayment
@@ -513,22 +456,13 @@ function Financial() {
                           : "No payment yet"}
                       </td>
                       <td className="px-8 py-5">
-                        <div className="flex items-center space-x-4">
-                          <button
-                            onClick={() => handleSalaryEdit(employee)}
-                            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
-                          >
-                            <FaEdit className="h-4 w-4" />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => handlePaySalary(employee.id)}
-                            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
-                          >
-                            <FaPaperPlane className="h-4 w-4" />
-                            <span>Pay Salary</span>
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handlePaySalary(employee.id)}
+                          className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+                        >
+                          <FaPaperPlane className="h-4 w-4" />
+                          <span>Pay Salary</span>
+                        </button>
                       </td>
                     </tr>
                   ))}

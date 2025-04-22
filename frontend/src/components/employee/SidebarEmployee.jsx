@@ -11,7 +11,7 @@ const SidebarEmployee = () => {
     { name: 'My Leaves', path: '/my-leaves', icon: 'leave' },
     { name: 'My Salary', path: '/my-salary', icon: 'currency-rupee' },
     { name: 'Stock Requests', path: '/stock-requests', icon: 'inbox' },
-    { name: 'Mess Schedule', path: '/mess-schedule', icon: 'menu' }
+    { name: 'Mess Schedule', path: '/employee/mess-schedule', icon: 'menu' }
   ];
 
   return (
