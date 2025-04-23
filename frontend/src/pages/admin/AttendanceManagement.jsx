@@ -33,13 +33,12 @@ function AttendanceManagement() {
     total: 0,
   });
 
-  // Fetch employees and attendance data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch employees
+     
         const employeesResponse = await api.get("/api/admin/employees");
         if (employeesResponse) {
           const activeEmployees = (employeesResponse.data.data || []).filter(
@@ -47,18 +46,7 @@ function AttendanceManagement() {
           );
           setEmployees(activeEmployees);
         }
-        
-
-        // // Fetch attendance records for the selected date
-        // const attendanceResponse = await getAttendanceByDate(filterDate);
-        // if (attendanceResponse.success) {
-        //   const records = attendanceResponse.data.map((item) => ({
-        //     employee: item.employee._id,
-        //     status: item.attendance?.status || null,
-        //     date: filterDate,
-        //   }));
-        //   setAttendanceRecords(records);
-        // }
+     
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Failed to fetch attendance data");
@@ -72,7 +60,7 @@ function AttendanceManagement() {
     }
   }, [user, filterDate]);
 
-  // Calculate statistics
+
   useEffect(() => {
     const present = attendanceRecords.filter(
       (record) => record.status === "present"
@@ -92,7 +80,7 @@ function AttendanceManagement() {
     });
   }, [attendanceRecords, employees.length]);
 
-  // Handle attendance status change
+
   const handleStatusChange = (employeeId, newStatus) => {
     setAttendanceRecords((prev) => {
       const existingRecord = prev.find(
@@ -100,14 +88,14 @@ function AttendanceManagement() {
       );
 
       if (existingRecord) {
-        // Update existing record
+    
         return prev.map((record) =>
           record.employee === employeeId
             ? { ...record, status: newStatus }
             : record
         );
       } else {
-        // Add new record
+        
         return [
           ...prev,
           {
@@ -120,12 +108,11 @@ function AttendanceManagement() {
     });
   };
 
-  // Submit attendance records
+
   const handleSubmit = async () => {
     try {
       setSaving(true);
 
-      // Filter out records with no status
       const records = attendanceRecords
         .filter((record) => record.status)
         .map((record) => ({
@@ -140,23 +127,23 @@ function AttendanceManagement() {
         return;
       }
 
-      // Submit to API
+     
       const response = await submitAttendanceRecords(records);
 
       if (response.success) {
-        // Show success message with number of records saved
+    
         toast.success(
           `Successfully saved ${response.data.saved} attendance records`
         );
 
-        // If there were any errors, show them
+      
         if (response.data.errors && response.data.errors.length > 0) {
           toast.error(
             `Some records had errors: ${response.data.errors.join(", ")}`
           );
         }
 
-        // Refresh the data
+       
         const attendanceResponse = await getAttendanceByDate(filterDate);
         if (attendanceResponse.success) {
           const updatedRecords = attendanceResponse.data.map((item) => ({
@@ -175,19 +162,19 @@ function AttendanceManagement() {
     }
   };
 
-  // Get employee name by ID
+
   const getEmployeeName = (employeeId) => {
     const employee = employees.find((emp) => emp._id === employeeId);
     return employee ? `${employee.firstName} ${employee.lastName}` : "Unknown";
   };
 
-  // Get employee department by ID
+
   const getEmployeeDepartment = (employeeId) => {
     const employee = employees.find((emp) => emp._id === employeeId);
     return employee ? employee.department : "Unknown";
   };
 
-  // Get attendance status for an employee
+
   const getAttendanceStatus = (employeeId) => {
     const record = attendanceRecords.find(
       (record) => record.employee === employeeId
@@ -208,7 +195,6 @@ function AttendanceManagement() {
         </p>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between">
@@ -267,7 +253,7 @@ function AttendanceManagement() {
         </div>
       </div>
 
-      {/* Filters and Table */}
+
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">

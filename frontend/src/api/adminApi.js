@@ -1,10 +1,6 @@
 import api from './config';
 
-// ✅ Use full backend URL
 const API_URL = '/api/admin';
-
-// Employee Management API
-
 export const getEmployees = async (page = 1, limit = 10, filters = {}) => {
   try {
     const params = {
@@ -49,7 +45,6 @@ export const deleteEmployee = async (id, reason) => {
   }
 };
 
-// Employee Profile API
 export const getEmployeeProfile = async () => {
   try {
     const response = await api.get(`/api/employee/profile`);
@@ -59,7 +54,6 @@ export const getEmployeeProfile = async () => {
   }
 };
 
-// Employee Dashboard Stats
 export const getEmployeeDashboardStats = async () => {
   try {
     const response = await api.get(`${API_URL}/employees/dashboard`);
@@ -69,22 +63,3 @@ export const getEmployeeDashboardStats = async () => {
   }
 };
 
-// Run Management API
-export const endRun = async (runId) => {
-  try {
-    const response = await api.put(`${API_URL}/runs/${runId}/end`);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { error: 'Failed to end run' };
-  }
-};
-
-// Run Management API
-export const getRuns = async () => {
-  try {
-    const response = await api.get(`${API_URL}/runs`);
-    return response.data.runs;
-  } catch (error) {
-    throw error.response?.data || { error: 'Failed to fetch runs' };
-  }
-};

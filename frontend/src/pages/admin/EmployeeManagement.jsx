@@ -5,6 +5,7 @@ import api from "../../api/config";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { FiUserPlus } from "react-icons/fi";
+import { useTheme } from "../../context/ThemeContext"; // Import the useTheme hook
 
 const EmployeeManagement = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const EmployeeManagement = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { darkMode } = useTheme(); // Access dark mode state
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,13 +63,13 @@ const EmployeeManagement = () => {
   if (error) return <div className="text-red-500 p-4">{error}</div>;
 
   return (
-    <div className="ml-64 p-8">
+    <div className={`ml-64 p-8 ${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col space-y-6">
           {/* Header Section */}
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">
+              <h1 className={`text-3xl font-bold ${darkMode ? "text-white" : "text-gray-800"}`}>
                 Employee Management
               </h1>
               <p className="text-gray-500">{employees.length} employees</p>
@@ -134,8 +136,7 @@ const EmployeeManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
-                       
-onClick={() => navigate(`/admin/employees/${employee._id}/edit`, { state: { employee } })}
+                          onClick={() => navigate(`/admin/employees/${employee._id}/edit`, { state: { employee } })}
                           className="text-indigo-600 hover:text-indigo-900 mr-4"
                         >
                           Edit

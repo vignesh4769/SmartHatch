@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { FiUserCheck, FiUserX, FiClock, FiCalendar } from 'react-icons/fi';
+import { FiUserCheck, FiUserX, FiClock, FiCalendar, FiSun, FiMoon } from 'react-icons/fi';
 import api from '../../api/employeeAPI';
 
 function EmployeeAttendance() {
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState({});
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isDarkMode, setIsDarkMode] = useState(false); // State to track dark mode
 
   useEffect(() => {
-    // Fetch employees from the same hatchery as admin
+    // Fetch employees from the same department as admin
     const fetchEmployees = async () => {
       try {
         const response = await api.get('/employees');
@@ -43,36 +44,52 @@ function EmployeeAttendance() {
     }
   };
 
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   return (
-    <div className="ml-64 p-8 bg-gray-50 min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Employee Attendance</h1>
-        <p className="text-gray-600 mt-2">Mark attendance for employees</p>
+    <div className={`ml-64 p-8 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} min-h-screen transition-colors`}>
+      {/* Dark Mode Toggle Button */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={toggleDarkMode}
+          className={`p-2 rounded-full ${isDarkMode ? 'bg-yellow-500' : 'bg-blue-500'} text-white`}
+        >
+          {isDarkMode ? <FiSun /> : <FiMoon />}
+        </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+      <div className="mb-8">
+        <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Employee Attendance</h1>
+        <p className={`text-${isDarkMode ? 'gray-400' : 'gray-600'} mt-2`}>Mark attendance for employees</p>
+      </div>
+
+      {/* Attendance Date Section */}
+      <div className={`bg-white rounded-xl shadow-lg p-6 mb-8 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <FiCalendar className="text-blue-600 text-xl mr-2" />
-            <h2 className="text-xl font-semibold text-gray-800">Attendance Date</h2>
+            <FiCalendar className={`text-${isDarkMode ? 'yellow-400' : 'blue-600'} text-xl mr-2`} />
+            <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Attendance Date</h2>
           </div>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-${isDarkMode ? 'yellow' : 'blue'}-500`}
           />
         </div>
 
+        {/* Employee Attendance Table */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className={`min-w-full divide-y divide-gray-200 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            <thead className={`bg-${isDarkMode ? 'gray-700' : 'gray-50'}`}>
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className={`bg-${isDarkMode ? 'gray-800' : 'white'} divide-y divide-gray-200`}>
               {employees.map((employee) => (
                 <tr key={employee._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -83,8 +100,8 @@ function EmployeeAttendance() {
                         </span>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{employee.name}</div>
-                        <div className="text-sm text-gray-500">{employee.department}</div>
+                        <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{employee.name}</div>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{employee.department}</div>
                       </div>
                     </div>
                   </td>
@@ -116,10 +133,11 @@ function EmployeeAttendance() {
           </table>
         </div>
 
+        {/* Submit Attendance Button */}
         <div className="mt-6 flex justify-end">
           <button
             onClick={submitAttendance}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className={`bg-${isDarkMode ? 'yellow' : 'blue'}-600 text-white px-6 py-2 rounded-lg hover:bg-${isDarkMode ? 'yellow' : 'blue'}-700 transition-colors`}
           >
             Submit Attendance
           </button>

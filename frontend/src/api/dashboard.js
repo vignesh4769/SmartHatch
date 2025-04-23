@@ -2,7 +2,6 @@ import api from './config';
 
 const API_URL = '/api';
 
-// Fetch dashboard data for admin
 export const getDashboardData = async () => {
   try {
     const response = await api.get(`${API_URL}/dashboard`);
@@ -12,7 +11,6 @@ export const getDashboardData = async () => {
   }
 };
 
-// Fetch employee dashboard stats
 export const getEmployeeDashboardStats = async () => {
   try {
     const response = await api.get(`${API_URL}/employee/dashboard`);
@@ -22,7 +20,6 @@ export const getEmployeeDashboardStats = async () => {
   }
 };
 
-// Fetch admin dashboard stats
 export const getAdminDashboardStats = async () => {
   try {
     const response = await api.get(`${API_URL}/admin/dashboard/stats`);

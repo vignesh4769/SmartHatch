@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { FiBell, FiLogOut, FiUser, FiSettings } from "react-icons/fi";
 import {
   HiOutlineCash,
-  HiOutlineUsers,
   HiOutlineShoppingBag,
 } from "react-icons/hi";
 import {
@@ -84,7 +83,7 @@ function Navbar({ userRole }) {
   };
 
   return (
-    <div className="bg-gray-800 text-white shadow-sm h-16 z-50 flex items-center justify-between px-6 fixed top-0 left-0 w-full shadow-md">
+    <div className="bg-gray-900 text-white shadow-sm h-16 z-50 flex items-center justify-between px-6 fixed top-0 left-0 w-full shadow-md">
       {/* Logo */}
       <div className="flex items-center">
         <Link
@@ -209,12 +208,12 @@ function Navbar({ userRole }) {
             )}
           </button>
           {isNotifOpen && (
-            <div className="absolute right-0 mt-2 w-72 bg-white shadow-lg rounded-lg overflow-hidden z-10 text-gray-800">
+            <div className="absolute right-0 mt-2 w-72 bg-white shadow-lg rounded-lg overflow-hidden z-10 text-gray-900">
               <div className="p-3 border-b border-gray-200">
                 <h3 className="font-bold flex justify-between items-center">
                   <span>Notifications</span>
                   <button
-                    className="text-xs text-indigo-600 hover:text-indigo-800"
+                    className="text-xs text-indigo-600 hover:text-indigo-900"
                     onClick={() =>
                       setNotifications(
                         notifications.map((n) => ({ ...n, read: true }))
@@ -279,7 +278,7 @@ function Navbar({ userRole }) {
           </button>
 
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white shadow-lg rounded-lg overflow-hidden z-10 text-gray-800">
+            <div className="absolute right-0 mt-2 w-56 bg-white shadow-lg rounded-lg overflow-hidden z-10 text-gray-900">
               <div className="p-3 border-b border-gray-200">
                 <p className="font-medium">{user?.name}</p>
                 <p className="text-xs text-gray-500">{user?.email}</p>

@@ -5,14 +5,15 @@ import {
   FiUsers,
   FiCalendar,
   FiCoffee,
-  FiTrendingUp,
   FiFileText,
+  FiDollarSign,
+  FiPackage
 } from "react-icons/fi";
 
-const AdminSidebar = () => {
+const Sidebar = ({ userRole = "employee" }) => {
   const location = useLocation();
 
-  const navItems = [
+  const adminNavItems = [
     {
       path: "/admin/employees",
       icon: <FiUsers size={18} />,
@@ -35,12 +36,25 @@ const AdminSidebar = () => {
     },
   ];
 
+  const employeeNavItems = [
+
+    { path: "/employee/attendance", icon: <FiCalendar size={18} />, label: "My Attendance" },
+    { path: "/employee/salary", icon: <FiDollarSign size={18} />, label: "My Salary" },
+    { path: "/employee/stock-requests", icon: <FiPackage size={18} />, label: "Stock Requests" },
+    { path: "/employee/mess-schedule", icon: <FiCoffee size={18} />, label: "Mess Schedule" }
+  ];
+
+  const navItems = userRole === "admin" ? adminNavItems : employeeNavItems;
+  const isAdmin = userRole === "admin";
+
   return (
-    <div className="w-64 h-screen bg-gray-800 text-white p-4 fixed shadow-lg">
-      <h2 className="text-xl font-bold mb-6 pt-4 px-2 flex items-center">
-        <FiHome className="mr-2" size={20} />
-        Admin Panel
-      </h2>
+    <aside className={`w-64 h-screen p-5 fixed shadow-lg ${isAdmin ? 'bg-gray-900' : 'bg-gray-900'} text-white`}>
+      <div className="flex items-center mb-5">
+        <h2 className="text-xl font-bold text-white flex items-center">
+          <FiHome className="mr-2" size={20} />
+          {isAdmin ? 'Admin Panel' : 'Employee Portal'}
+        </h2>
+      </div>
       <nav>
         <ul className="space-y-1">
           {navItems.map((item) => (
@@ -60,8 +74,8 @@ const AdminSidebar = () => {
           ))}
         </ul>
       </nav>
-    </div>
+    </aside>
   );
 };
 
-export default AdminSidebar;
+export default Sidebar;

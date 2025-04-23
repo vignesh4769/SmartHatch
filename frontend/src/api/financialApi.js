@@ -4,7 +4,7 @@ const financialApi = {
   getTransactions: async () => {
     try {
       const response = await api.get('/api/financials/transactions');
-      return response.data.data || response.data; // Handle both response structures
+      return response.data.data || response.data;
     } catch (error) {
       console.error('Error fetching transactions:', error);
       throw error;

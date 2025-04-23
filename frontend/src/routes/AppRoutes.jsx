@@ -161,6 +161,14 @@ const AppRoutes = () => {
               </Suspense>
             }
           />
+           <Route
+      path="/employee/mess"
+      element={
+        <Suspense fallback={<LoadingSpinner />}>
+          <MessSchedule />
+        </Suspense>
+      }
+    />
           <Route
             path="/employee/attendance"
             element={

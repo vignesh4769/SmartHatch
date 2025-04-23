@@ -1,98 +1,124 @@
-import React, { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import React, { useState } from 'react';
+import { FaUser, FaLock, FaMoon, FaSun } from 'react-icons/fa';
+import { useTheme } from '../../context/ThemeContext';
 
 const Settings = () => {
-  const { user, updateUser } = useAuth();
+  const { darkMode, toggleDarkMode } = useTheme();
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    password: "",
-    notifications: true,
+    fullName: 'Vigneswar Garikina',
+    email: 'siddhugarikina4769@gmail.com',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   });
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]:
-        e.target.type === "checkbox" ? e.target.checked : e.target.value,
-    });
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    // Add your update logic here
-    console.log("Settings updated:", formData);
+    // Handle form submission here
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 ml-56">
-      <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              New Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-              placeholder="Leave blank to keep current"
-            />
-          </div>
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} py-8 px-4 sm:px-6 lg:px-8`}>
+      <div className="max-w-3xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            Account Settings
+          </h1>
+          <button
+            onClick={toggleDarkMode}
+            className={`p-2 rounded-full ${
+              darkMode ? 'bg-gray-700 text-yellow-300' : 'bg-gray-200 text-gray-600'
+            } hover:bg-opacity-80`}
+          >
+            {darkMode ? <FaSun size={20} /> : <FaMoon size={20} />}
+          </button>
         </div>
 
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            name="notifications"
-            checked={formData.notifications}
-            onChange={handleChange}
-            className="h-4 w-4 text-blue-600 rounded"
-          />
-          <label className="ml-2 text-sm text-gray-700">
-            Receive email notifications
-          </label>
-        </div>
+        <div className="space-y-6">
+          {/* Password Settings */}
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} shadow rounded-lg p-6`}>
+            <h2 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-gray-900'} mb-4 flex items-center gap-2`}>
+              <FaLock className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+              Password Settings
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  name="currentPassword"
+                  value={formData.currentPassword}
+                  onChange={handleInputChange}
+                  className={`mt-1 block w-full rounded-md ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-gray-500 focus:ring-gray-500' 
+                      : 'bg-white border-gray-300 focus:border-gray-500 focus:ring-gray-500'
+                  }`}
+                />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  name="newPassword"
+                  value={formData.newPassword}
+                  onChange={handleInputChange}
+                  className={`mt-1 block w-full rounded-md ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-gray-500 focus:ring-gray-500' 
+                      : 'bg-white border-gray-300 focus:border-gray-500 focus:ring-gray-500'
+                  }`}
+                />
+              </div>
+              <div>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className={`mt-1 block w-full rounded-md ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-gray-500 focus:ring-gray-500' 
+                      : 'bg-white border-gray-300 focus:border-gray-500 focus:ring-gray-500'
+                  }`}
+                />
+              </div>
+            </div>
+          </div>
 
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Save Changes
-        </button>
-      </form>
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              className={`px-6 py-2 ${
+                darkMode 
+                  ? 'bg-gray-700 hover:bg-gray-600' 
+                  : 'bg-gray-600 hover:bg-gray-700'
+              } text-white rounded-lg transition-colors`}
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default Settings; // This is the crucial line
+export default Settings;

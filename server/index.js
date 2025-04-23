@@ -9,7 +9,7 @@ import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/admin.js';
 import VistorRouter from './routes/VisitorRoutes.js';
 import financialRoutes from './routes/financialRoutes.js';
-
+import employeeRoutes from './routes/employeeRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -23,10 +23,11 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api', VistorRouter);
+app.use('/api/visitor', VistorRouter);
 app.use('/api/financials', financialRoutes);
-app.get('/api/health', protect, (req, res) => {
-  res.json({ status: 'OK' });
+app.use('/api/employees/mess', employeeRoutes);
+app.get('/', protect, (req, res) => {
+  res.json({ status: 'OK' , message: 'Server is running' });
 });
 
 // Error handling

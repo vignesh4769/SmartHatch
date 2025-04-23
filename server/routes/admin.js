@@ -32,7 +32,8 @@ import {
   createMessSchedule,
   getMessSchedules,
   updateMessSchedule,
-  deleteMessSchedule
+  deleteMessSchedule,
+  getMess
 } from '../controllers/messController.js';
 
 const router = express.Router();
@@ -84,6 +85,8 @@ router.put('/inventory/stock-requests/:id', updateStockRequest);
 router.route('/mess')
   .post(createMessSchedule)
   .get(getMessSchedules);
+  
+router.route('/mess/employees').get(getMess);
 
 router.route('/mess/:id')
   .put(updateMessSchedule)

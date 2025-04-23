@@ -74,7 +74,7 @@ const EditEmployee = () => {
     const errors = {};
     let isValid = true;
 
-    // Basic info validation
+  
     if (!employee.firstName.trim()) {
       errors.firstName = 'First name is required';
       isValid = false;
@@ -99,7 +99,6 @@ const EditEmployee = () => {
       isValid = false;
     }
 
-    // Employment details validation
     if (!employee.position.trim()) {
       errors.position = 'Position is required';
       isValid = false;
@@ -113,7 +112,6 @@ const EditEmployee = () => {
       isValid = false;
     }
 
-    // Emergency contact validation
     if (!employee.emergencyContact.name.trim()) {
       errors['emergencyContact.name'] = 'Emergency contact name is required';
       isValid = false;
@@ -155,11 +153,11 @@ const EditEmployee = () => {
         <h1 className="text-2xl font-bold mb-6">Edit Employee</h1>
         
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
-          {/* Basic Information Section */}
+         
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 border-b pb-2">Basic Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* First Name */}
+             
               <div>
                 <label className="block text-gray-700 mb-2">First Name *</label>
                 <input
@@ -172,7 +170,7 @@ const EditEmployee = () => {
                 {formErrors.firstName && <p className="text-red-500 text-sm mt-1">{formErrors.firstName}</p>}
               </div>
 
-              {/* Last Name */}
+         
               <div>
                 <label className="block text-gray-700 mb-2">Last Name *</label>
                 <input
@@ -185,7 +183,7 @@ const EditEmployee = () => {
                 {formErrors.lastName && <p className="text-red-500 text-sm mt-1">{formErrors.lastName}</p>}
               </div>
 
-              {/* Email */}
+            
               <div>
                 <label className="block text-gray-700 mb-2">Email *</label>
                 <input
@@ -198,7 +196,7 @@ const EditEmployee = () => {
                 {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
               </div>
 
-              {/* Phone */}
+           
               <div>
                 <label className="block text-gray-700 mb-2">Phone *</label>
                 <input
@@ -211,7 +209,7 @@ const EditEmployee = () => {
                 {formErrors.phone && <p className="text-red-500 text-sm mt-1">{formErrors.phone}</p>}
               </div>
 
-              {/* Address */}
+          
               <div className="md:col-span-2">
                 <label className="block text-gray-700 mb-2">Address *</label>
                 <input
@@ -226,11 +224,10 @@ const EditEmployee = () => {
             </div>
           </div>
 
-          {/* Employment Details Section */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 border-b pb-2">Employment Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Position */}
+           
               <div>
                 <label className="block text-gray-700 mb-2">Position *</label>
                 <input
@@ -243,7 +240,7 @@ const EditEmployee = () => {
                 {formErrors.position && <p className="text-red-500 text-sm mt-1">{formErrors.position}</p>}
               </div>
 
-              {/* Department */}
+             
               <div>
                 <label className="block text-gray-700 mb-2">Department *</label>
                 <input
@@ -256,7 +253,7 @@ const EditEmployee = () => {
                 {formErrors.department && <p className="text-red-500 text-sm mt-1">{formErrors.department}</p>}
               </div>
 
-              {/* Salary */}
+            
               <div>
                 <label className="block text-gray-700 mb-2">Salary *</label>
                 <input
@@ -269,7 +266,7 @@ const EditEmployee = () => {
                 {formErrors.salary && <p className="text-red-500 text-sm mt-1">{formErrors.salary}</p>}
               </div>
 
-              {/* Role */}
+            
               <div>
                 <label className="block text-gray-700 mb-2">Role</label>
                 <select
@@ -286,11 +283,11 @@ const EditEmployee = () => {
             </div>
           </div>
 
-          {/* Emergency Contact Section */}
+         
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 border-b pb-2">Emergency Contact *</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Emergency Contact Name */}
+              
               <div>
                 <label className="block text-gray-700 mb-2">Name *</label>
                 <input
@@ -303,7 +300,7 @@ const EditEmployee = () => {
                 {formErrors['emergencyContact.name'] && <p className="text-red-500 text-sm mt-1">{formErrors['emergencyContact.name']}</p>}
               </div>
 
-              {/* Emergency Contact Relation */}
+        
               <div>
                 <label className="block text-gray-700 mb-2">Relation *</label>
                 <input
@@ -316,7 +313,7 @@ const EditEmployee = () => {
                 {formErrors['emergencyContact.relation'] && <p className="text-red-500 text-sm mt-1">{formErrors['emergencyContact.relation']}</p>}
               </div>
 
-              {/* Emergency Contact Phone */}
+              
               <div>
                 <label className="block text-gray-700 mb-2">Phone *</label>
                 <input
@@ -331,7 +328,7 @@ const EditEmployee = () => {
             </div>
           </div>
 
-          {/* Form Actions */}
+          
           <div className="flex justify-end space-x-4">
             <button
               type="button"

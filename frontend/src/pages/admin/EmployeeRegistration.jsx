@@ -32,8 +32,6 @@ function EmployeeRegistration() {
   });
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-
-  // Handles changes in form fields
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.startsWith("emergency_")) {
@@ -50,7 +48,6 @@ function EmployeeRegistration() {
     }
   };
 
-  // Fetches employee details if in edit mode
   useEffect(() => {
     if (id) {
       const fetchEmployee = async () => {
@@ -59,7 +56,7 @@ function EmployeeRegistration() {
           setFormData({
             ...employee,
             joiningDate: new Date(employee.joiningDate).toISOString().split("T")[0],
-            password: "", // Don't show password in the edit form
+            password: "",
           });
           setIsEditMode(true);
         } catch (error) {
@@ -70,11 +67,10 @@ function EmployeeRegistration() {
     }
   }, [id]);
 
-  // Handles form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Ensure emergency contact data is properly formatted
+     
       if (!formData.emergencyContact.name || !formData.emergencyContact.relation || !formData.emergencyContact.phone) {
         setError("All emergency contact fields are required");
         return;
@@ -108,7 +104,6 @@ function EmployeeRegistration() {
       }
     } catch (error) {
       console.error('Error response:', error.response?.data);
-      // Handle specific error cases
       if (error.response?.status === 409) {
         setError("An employee with this email already exists. Please use a different email address.");
       } else if (error.response?.data?.message) {
