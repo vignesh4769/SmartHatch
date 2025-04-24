@@ -39,7 +39,6 @@ const Sidebar = ({ userRole = "employee" }) => {
   const employeeNavItems = [
 
     { path: "/employee/attendance", icon: <FiCalendar size={18} />, label: "My Attendance" },
-    { path: "/employee/salary", icon: <FiDollarSign size={18} />, label: "My Salary" },
     { path: "/employee/stock-requests", icon: <FiPackage size={18} />, label: "Stock Requests" },
     { path: "/employee/mess-schedule", icon: <FiCoffee size={18} />, label: "Mess Schedule" }
   ];

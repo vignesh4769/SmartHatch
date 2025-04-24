@@ -63,7 +63,7 @@ const EmployeeManagement = () => {
   if (error) return <div className="text-red-500 p-4">{error}</div>;
 
   return (
-    <div className={`ml-64 p-8 ${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
+    <div className={`ml-56 p-8 ${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col space-y-6">
           {/* Header Section */}

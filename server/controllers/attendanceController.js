@@ -1,179 +1,27 @@
 import Attendance from '../models/Attendance.js';
-import User from '../models/User.js';
-
-// Record attendance
-export const recordAttendance = async (req, res) => {
-  try {
-    const { employeeId, date, status, notes } = req.body;
-    const recordedBy = req.user._id;
-    const hatcheryId = req.user.hatcheryId;
-
-    if (!employeeId || !date || !status) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Employee ID, date and status are required' 
-      });
-    }
-
-    // Check if employee exists and belongs to the same hatchery
-    const employee = await User.findOne({ 
-      _id: employeeId, 
-      hatcheryId,
-      role: 'employee' 
-    });
-
-    if (!employee) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Employee not found in your hatchery' 
-      });
-    }
-
-    // Check if attendance already recorded for this date
-    const existingAttendance = await Attendance.findOne({ 
-      employeeId,
-      date: new Date(date)
-    });
-
-    if (existingAttendance) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Attendance already recorded for this employee on the selected date' 
-      });
-    }
-
-    // Create new attendance record
-    const attendance = new Attendance({
-      employeeId,
-      date: new Date(date),
-      status,
-      notes,
-      recordedBy
-    });
-
-    await attendance.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Attendance recorded successfully',
-      data: attendance
-    });
-
-  } catch (error) {
-    console.error('Error recording attendance:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Server error while recording attendance' 
-    });
-  }
-};
+import Employee from '../models/Employee.js';
+import mongoose from 'mongoose';
 
 // Get attendance by date
 export const getAttendanceByDate = async (req, res) => {
   try {
     const { date } = req.query;
-    const hatcheryId = req.user.hatcheryId;
+    const queryDate = new Date(date);
+    queryDate.setHours(0, 0, 0, 0);
 
-    if (!date) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Date is required' 
-      });
-    }
+    const attendance = await Attendance.find({ date: queryDate })
+      .populate('employeeId', 'firstName lastName email department')
+      .populate('recordedBy', 'firstName lastName');
 
-    // Get all employees for the hatchery
-    const employees = await User.find({ 
-      hatcheryId,
-      role: 'employee' 
-    }).select('_id firstName lastName profileImage');
-
-    // Get attendance records for the date
-    const attendanceRecords = await Attendance.find({ 
-      date: new Date(date),
-      employeeId: { $in: employees.map(e => e._id) }
-    });
-
-    // Combine employee data with attendance records
-    const result = employees.map(employee => {
-      const record = attendanceRecords.find(r => 
-        r.employeeId.toString() === employee._id.toString()
-      );
-      
-      return {
-        employee: {
-          _id: employee._id,
-          firstName: employee.firstName,
-          lastName: employee.lastName,
-          profileImage: employee.profileImage
-        },
-        attendance: record ? {
-          status: record.status,
-          notes: record.notes,
-          recordedAt: record.createdAt
-        } : null
-      };
-    });
-
-    res.status(200).json({
+    res.json({
       success: true,
-      data: result
-    });
-
-  } catch (error) {
-    console.error('Error fetching attendance:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Server error while fetching attendance' 
-    });
-  }
-};
-
-// Update attendance
-export const updateAttendance = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, notes } = req.body;
-
-    if (!status) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Status is required' 
-      });
-    }
-
-    const attendance = await Attendance.findById(id);
-    
-    if (!attendance) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Attendance record not found' 
-      });
-    }
-
-    // Check if the employee belongs to the same hatchery
-    const employee = await User.findById(attendance.employeeId);
-    if (!employee || employee.hatcheryId.toString() !== req.user.hatcheryId.toString()) {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Not authorized to update this attendance record' 
-      });
-    }
-
-    attendance.status = status;
-    if (notes !== undefined) attendance.notes = notes;
-    await attendance.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Attendance updated successfully',
       data: attendance
     });
-
   } catch (error) {
-    console.error('Error updating attendance:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Server error while updating attendance' 
+    console.error('Error fetching attendance:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch attendance records'
     });
   }
 };
@@ -182,7 +30,6 @@ export const updateAttendance = async (req, res) => {
 export const submitAttendanceRecords = async (req, res) => {
   try {
     const { records } = req.body;
-    const hatcheryId = req.user.hatcheryId;
     const recordedBy = req.user._id;
 
     if (!Array.isArray(records) || records.length === 0) {
@@ -192,76 +39,263 @@ export const submitAttendanceRecords = async (req, res) => {
       });
     }
 
-    // Get all employees for the hatchery
-    const employees = await User.find({
-      hatcheryId,
-      role: 'employee'
-    }).select('_id');
+    const date = new Date(records[0].date);
+    date.setHours(0, 0, 0, 0);
 
-    const employeeIds = employees.map(e => e._id.toString());
+    // Get all active employees
+    const employees = await Employee.find({ deletedAt: null });
+    const employeeIds = employees.map(emp => emp._id.toString());
 
-    // Process each record
-    const savedRecords = [];
-    const errors = [];
-
+    // Validate all records
     for (const record of records) {
       try {
-        const { employeeId, date, status } = record;
-
-        // Validate required fields
-        if (!employeeId || !date || !status) {
-          errors.push(`Invalid record: missing required fields for employee ${employeeId}`);
-          continue;
-        }
-
-        // Check if employee belongs to the hatchery
-        if (!employeeIds.includes(employeeId.toString())) {
-          errors.push(`Employee ${employeeId} not found in your hatchery`);
-          continue;
-        }
-
-        // Check for existing attendance record
-        const existingAttendance = await Attendance.findOne({
-          employeeId,
-          date: new Date(date)
-        });
-
-        if (existingAttendance) {
-          // Update existing record
-          existingAttendance.status = status;
-          await existingAttendance.save();
-          savedRecords.push(existingAttendance);
-        } else {
-          // Create new record
-          const attendance = new Attendance({
-            employeeId,
-            date: new Date(date),
-            status,
-            recordedBy
+        // Convert the record's employeeId to string for comparison
+        const recordEmployeeId = record.employeeId.toString();
+        
+        // Check if employee exists and is active
+        const employee = await Employee.findById(recordEmployeeId);
+        if (!employee) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid employee ID: ${recordEmployeeId}`
           });
-          await attendance.save();
-          savedRecords.push(attendance);
         }
-      } catch (error) {
-        console.error('Error processing record:', error);
-        errors.push(`Error processing record for employee ${record.employeeId}: ${error.message}`);
+        
+        if (employee.deletedAt !== null) {
+          return res.status(400).json({
+            success: false,
+            error: `Employee ${employee.firstName} ${employee.lastName} is no longer active`
+          });
+        }
+
+        // Validate check-in time if provided
+        if (record.checkIn && ['present', 'late', 'half-day'].includes(record.status)) {
+          const checkInTime = new Date(record.checkIn);
+          if (isNaN(checkInTime.getTime())) {
+            return res.status(400).json({
+              success: false,
+              error: `Invalid check-in time for employee: ${employee.firstName} ${employee.lastName}`
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error validating record:', err);
+        return res.status(400).json({
+          success: false,
+          error: `Invalid record data for employee ID: ${record.employeeId}`
+        });
       }
     }
 
-    res.status(200).json({
-      success: true,
-      message: 'Attendance records processed',
-      data: {
-        saved: savedRecords.length,
-        errors: errors.length > 0 ? errors : null
-      }
+    // Check for existing records
+    const existingRecords = await Attendance.find({
+      employeeId: { $in: records.map(r => mongoose.Types.ObjectId(r.employeeId)) },
+      date
     });
+
+    if (existingRecords.length > 0) {
+      const existingEmployees = await Employee.find({
+        _id: { $in: existingRecords.map(r => r.employeeId) }
+      });
+      
+      const employeeNames = existingEmployees
+        .map(emp => `${emp.firstName} ${emp.lastName}`)
+        .join(', ');
+
+      return res.status(400).json({
+        success: false,
+        error: `Attendance already recorded for: ${employeeNames}`
+      });
+    }
+
+    // Create attendance records
+    const attendanceRecords = records.map(record => ({
+      employeeId: mongoose.Types.ObjectId(record.employeeId),
+      date,
+      status: record.status,
+      checkIn: record.checkIn ? new Date(record.checkIn) : null,
+      recordedBy: mongoose.Types.ObjectId(recordedBy)
+    }));
+
+    try {
+      await Attendance.insertMany(attendanceRecords);
+
+      res.status(201).json({
+        success: true,
+        message: 'Attendance records submitted successfully'
+      });
+    } catch (err) {
+      console.error('Error inserting records:', err);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to save attendance records'
+      });
+    }
 
   } catch (error) {
     console.error('Error submitting attendance records:', error);
     res.status(500).json({
       success: false,
-      error: 'Server error while submitting attendance records'
+      error: 'Failed to submit attendance records'
+    });
+  }
+};
+
+// Record single attendance
+export const recordAttendance = async (req, res) => {
+  try {
+    const { employeeId, date, status, checkIn } = req.body;
+    const recordedBy = req.user._id;
+
+    if (!employeeId || !date || !status) {
+      return res.status(400).json({
+        success: false,
+        error: 'Employee ID, date and status are required'
+      });
+    }
+
+    // Check if employee exists and is active
+    const employee = await Employee.findOne({
+      _id: employeeId,
+      deletedAt: null
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        error: 'Employee not found or is no longer active'
+      });
+    }
+
+    // Parse dates
+    const attendanceDate = new Date(date);
+    attendanceDate.setHours(0, 0, 0, 0);
+
+    // Check if attendance already recorded for this date
+    const existingAttendance = await Attendance.findOne({
+      employeeId,
+      date: attendanceDate
+    });
+
+    if (existingAttendance) {
+      return res.status(400).json({
+        success: false,
+        error: `Attendance already recorded for ${employee.firstName} ${employee.lastName} on the selected date`
+      });
+    }
+
+    // Create and save the attendance record
+    const attendance = new Attendance({
+      employeeId: mongoose.Types.ObjectId(employeeId),
+      date: attendanceDate,
+      status,
+      checkIn: checkIn ? new Date(checkIn) : null,
+      recordedBy: mongoose.Types.ObjectId(recordedBy)
+    });
+
+    await attendance.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Attendance recorded successfully'
+    });
+
+  } catch (error) {
+    console.error('Error recording attendance:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to record attendance'
+    });
+  }
+};
+
+// Get my attendance (for employees)
+export const getMyAttendance = async (req, res) => {
+  try {
+    const employeeId = req.user._id;
+    const { month } = req.query;
+
+    if (!month) {
+      return res.status(400).json({
+        success: false,
+        error: 'Month parameter is required (YYYY-MM format)'
+      });
+    }
+
+    const [year, monthNum] = month.split('-');
+    const startDate = new Date(year, monthNum - 1, 1);
+    const endDate = new Date(year, monthNum, 0);
+
+    const attendanceRecords = await Attendance.find({
+      employeeId,
+      date: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    }).sort({ date: 1 });
+
+    res.json({
+      success: true,
+      data: attendanceRecords
+    });
+
+  } catch (error) {
+    console.error('Error fetching employee attendance:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch attendance records'
+    });
+  }
+};
+
+// Get monthly report (for employees)
+export const getMonthlyReport = async (req, res) => {
+  try {
+    const employeeId = req.user._id;
+    const { month, year } = req.query;
+
+    if (!month || !year) {
+      return res.status(400).json({
+        success: false,
+        error: 'Month and year are required'
+      });
+    }
+
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+
+    const attendanceRecords = await Attendance.find({
+      employeeId,
+      date: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    });
+
+    // Calculate statistics
+    const stats = {
+      total: attendanceRecords.length,
+      present: attendanceRecords.filter(r => r.status === 'present').length,
+      absent: attendanceRecords.filter(r => r.status === 'absent').length,
+      late: attendanceRecords.filter(r => r.status === 'late').length,
+      halfDay: attendanceRecords.filter(r => r.status === 'half-day').length,
+      onLeave: attendanceRecords.filter(r => r.status === 'on-leave').length,
+      notMarked: attendanceRecords.filter(r => r.status === 'not-marked').length
+    };
+
+    res.json({
+      success: true,
+      data: {
+        records: attendanceRecords,
+        statistics: stats
+      }
+    });
+
+  } catch (error) {
+    console.error('Error generating monthly report:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate monthly report'
     });
   }
 };

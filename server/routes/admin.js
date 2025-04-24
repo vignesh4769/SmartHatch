@@ -4,21 +4,18 @@ import { getDashboardStats } from '../controllers/adminController.js';
 import {
   getEmployees,
   registerEmployee,
+  getEmployee,
   updateEmployee,
   deleteEmployee,
-  getEmployee,
-  
 } from '../controllers/employeeController.js';
-
-import { getPendingLeaves } from '../controllers/adminController.js';
-
 import {
-  recordAttendance,
   getAttendanceByDate,
-  updateAttendance,
-  submitAttendanceRecords,
+  recordAttendance,
+  submitAttendanceRecords
 } from '../controllers/attendanceController.js';
-
+import {
+  getPendingLeaves
+} from '../controllers/adminController.js';
 import {
   addInventoryItem,
   getInventoryItems,
@@ -48,23 +45,17 @@ router.route('/employees')
   .get(getEmployees)
   .post(registerEmployee);
 
-// Change this route
-// Change this to be consistent
 router.route('/employees/:id')
-  .get(getEmployee)  // Add this if you want to fetch single employee
+  .get(getEmployee)  
   .put(updateEmployee)
   .delete(deleteEmployee);
 
-// Leave management
 router.get('/pending-leaves', getPendingLeaves);
 
-// Attendance management
-router.route('/attendance')
-  .post(recordAttendance)
-  .get(getAttendanceByDate);
-
-router.post('/attendance/submit', submitAttendanceRecords);
-router.put('/attendance/:id', updateAttendance);
+// Attendance routes
+router.get('/attendance', getAttendanceByDate);
+router.post('/attendance', recordAttendance);
+router.post('/attendance/bulk', submitAttendanceRecords);
 
 // Inventory management
 router.route('/inventory')
@@ -91,4 +82,5 @@ router.route('/mess/employees').get(getMess);
 router.route('/mess/:id')
   .put(updateMessSchedule)
   .delete(deleteMessSchedule);
+
 export default router;

@@ -23,7 +23,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', VistorRouter);
 app.use('/api/financials', financialRoutes);
-app.use('/api/employees/mess', employeeRoutes);
+app.use('/api/employee', employeeRoutes);
+
 app.get('/', protect, (req, res) => {
   res.json({ status: 'OK' , message: 'Server is running' });
 });

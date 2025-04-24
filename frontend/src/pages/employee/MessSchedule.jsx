@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import dayjs from "dayjs";
 import {
   Table,
-  Button,
-  Space,
   message,
 } from 'antd';
+import messApi from '../../api/messApi';
 
 const MessSchedule = () => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     fetchSchedules();
   }, []);
@@ -18,7 +17,7 @@ const MessSchedule = () => {
   const fetchSchedules = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get('http://localhost:5000/api/admin/employees/mess');
+      const data = await messApi.getEmployeeMess();
       setSchedules(data);
     } catch (error) {
       console.error('Error fetching schedules:', error);
@@ -27,6 +26,7 @@ const MessSchedule = () => {
       setLoading(false);
     }
   };
+
   const columns = [
     {
       title: 'Date',
@@ -38,6 +38,7 @@ const MessSchedule = () => {
       title: 'Meal',
       dataIndex: 'mealType',
       key: 'mealType',
+      render: (type) => type.charAt(0).toUpperCase() + type.slice(1),
     },
     {
       title: 'Time',
@@ -50,7 +51,7 @@ const MessSchedule = () => {
       key: 'menu',
       render: (menu) => (
         <div className="max-w-xs">
-          {menu.length > 0 ? (
+          {menu?.length > 0 ? (
             <ul className="list-disc list-inside">
               {menu.slice(0, 3).map((item, index) => (
                 <li key={index} className="truncate">
@@ -81,34 +82,16 @@ const MessSchedule = () => {
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </span>
       ),
-    },
-    {
-      title: 'Capacity',
-      dataIndex: 'capacity',
-      key: 'capacity',
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button onClick={() => handleEdit(record)} icon={<FiEdit2 />}>
-            Edit
-          </Button>
-          <Button danger onClick={() => handleDelete(record._id)} icon={<FiTrash2 />}>
-            Delete
-          </Button>
-        </Space>
-      ),
-    },
+    }
   ];
+
   return (
     <div className="flex-1 ml-64 p-8 bg-gray-100 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Mess Management</h1>
-            <p className="text-gray-600 mt-1">Manage mess schedules and menu items</p>
+            <h1 className="text-2xl font-bold text-gray-800">Mess Schedule</h1>
+            <p className="text-gray-600 mt-1">View today's mess menu and schedule</p>
           </div>
         </div>
 

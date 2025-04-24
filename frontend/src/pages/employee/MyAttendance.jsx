@@ -11,21 +11,21 @@ const MyAttendance = () => {
   const [submitting, setSubmitting] = useState(false);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [todayStatus, setTodayStatus] = useState(null);
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     fetchAttendanceRecords();
-  }, []);
+  }, [filterDate]);
 
   const fetchAttendanceRecords = async () => {
     try {
       setLoading(true);
-      const startDate = new Date();
+      const startDate = new Date(filterDate);
       startDate.setMonth(startDate.getMonth() - 1);
-      const response = await getEmployeeAttendance(user._id, startDate.toISOString(), new Date().toISOString());
+      const response = await getEmployeeAttendance(user._id, startDate.toISOString(), new Date(filterDate).toISOString());
       setAttendanceRecords(response.data || []);
-      
-      // Check if attendance is already marked for today
-      const today = new Date().toISOString().split('T')[0];
+      // Check if attendance is already marked for the filter date
+      const today = filterDate;
       const todayRecord = response.data.find(record => record.date.split('T')[0] === today);
       setTodayStatus(todayRecord?.status || null);
     } catch (error) {
@@ -41,7 +41,7 @@ const MyAttendance = () => {
       setSubmitting(true);
       await markAttendance({
         employeeId: user._id,
-        date: new Date().toISOString(),
+        date: filterDate,
         status
       });
       toast.success('Attendance marked successfully');
@@ -63,116 +63,77 @@ const MyAttendance = () => {
     });
   };
 
+  // Statistics
+  const presentCount = attendanceRecords.filter(r => r.status === 'present').length;
+  const absentCount = attendanceRecords.filter(r => r.status === 'absent').length;
+  const halfDayCount = attendanceRecords.filter(r => r.status === 'half-day').length;
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <div className="flex">
       <div className="flex-1 ml-64 p-8 bg-gray-100 min-h-screen">
         <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">My Attendance</h1>
-              <p className="text-gray-600 mt-1">Track your attendance and performance</p>
-            </div>
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
-              <FaClock className="text-blue-600" />
-              <span className="text-gray-700 font-medium">
-                {new Date().toLocaleTimeString()}
-              </span>
-            </div>
-          </div>
-
-          {/* Mark Attendance Section */}
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Mark Today's Attendance</h2>
-            {todayStatus ? (
-              <div className="flex items-center gap-4">
-                <span className={`px-4 py-2 rounded-lg ${
-                  todayStatus === 'present' ? 'bg-green-100 text-green-800' :
-                  todayStatus === 'absent' ? 'bg-red-100 text-red-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {todayStatus.charAt(0).toUpperCase() + todayStatus.slice(1)}
-                </span>
-                <p className="text-gray-600">Attendance already marked for today</p>
-              </div>
-            ) : (
-              <div className="flex gap-4">
-                <button
-                  onClick={() => handleMarkAttendance('present')}
-                  disabled={submitting}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
-                >
-                  <FaCalendarCheck /> Present
-                </button>
-                <button
-                  onClick={() => handleMarkAttendance('absent')}
-                  disabled={submitting}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-800 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
-                >
-                  <FaCalendarTimes /> Absent
-                </button>
-                <button
-                  onClick={() => handleMarkAttendance('half-day')}
-                  disabled={submitting}
-                  className="flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition-colors disabled:opacity-50"
-                >
-                  <FaCalendarDay /> Half Day
-                </button>
-              </div>
-            )}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-800">My Attendance</h1>
+            <p className="text-gray-600 mt-2">Track your attendance and statistics</p>
           </div>
 
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Present Days</p>
-                  <h3 className="text-3xl font-bold text-green-600 mt-1">
-                    {attendanceRecords.filter(r => r.status === 'present').length}
-                  </h3>
+                  <p className="text-sm text-gray-500">Present Days</p>
+                  <h3 className="text-2xl font-bold text-green-600">{presentCount}</h3>
                 </div>
-                <div className="bg-green-100 p-3 rounded-full">
+                <div className="bg-green-100 rounded-full p-3">
                   <FaCalendarCheck className="w-6 h-6 text-green-600" />
                 </div>
               </div>
             </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Absent Days</p>
-                  <h3 className="text-3xl font-bold text-red-600 mt-1">
-                    {attendanceRecords.filter(r => r.status === 'absent').length}
-                  </h3>
+                  <p className="text-sm text-gray-500">Absent Days</p>
+                  <h3 className="text-2xl font-bold text-red-600">{absentCount}</h3>
                 </div>
-                <div className="bg-red-100 p-3 rounded-full">
+                <div className="bg-red-100 rounded-full p-3">
                   <FaCalendarTimes className="w-6 h-6 text-red-600" />
                 </div>
               </div>
             </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Half Days</p>
-                  <h3 className="text-3xl font-bold text-yellow-600 mt-1">
-                    {attendanceRecords.filter(r => r.status === 'half-day').length}
-                  </h3>
+                  <p className="text-sm text-gray-500">Half Days</p>
+                  <h3 className="text-2xl font-bold text-yellow-600">{halfDayCount}</h3>
                 </div>
-                <div className="bg-yellow-100 p-3 rounded-full">
+                <div className="bg-yellow-100 rounded-full p-3">
                   <FaCalendarDay className="w-6 h-6 text-yellow-600" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Monthly Record Table */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800">Monthly Record</h2>
+          {/* Filter Attendance */}
+          <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <FaClock className="text-gray-400 mr-2" />
+                <h2 className="text-lg font-semibold">Attendance Records</h2>
+              </div>
+              <div className="flex items-center space-x-4">
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             </div>
+            {/* Mark Attendance Section REMOVED */}
+            {/* Monthly Record Table */}
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -193,17 +154,14 @@ const MyAttendance = () => {
                         <span className={`px-3 py-1 text-xs rounded-full ${
                           record.status === 'present' ? 'bg-green-100 text-green-800' :
                           record.status === 'absent' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
+                          record.status === 'half-day' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}>
                           {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {record.checkIn || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {record.checkOut || '-'}
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.checkIn || '--:--'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.checkOut || '--:--'}</td>
                     </tr>
                   ))}
                 </tbody>

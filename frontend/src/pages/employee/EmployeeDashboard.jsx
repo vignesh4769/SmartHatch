@@ -11,9 +11,7 @@ function EmployeeDashboard() {
     { icon: <FaCalendarAlt />, title: "My Attendance", path: "/employee/attendance" },
     { icon: <FaFileAlt />, title: "My Leaves", path: "/employee/leave-application" },
     { icon: <FaFileAlt />, title: "Apply Leave", path: "/apply-leave" },
-    { icon: <FaMoneyBillWave />, title: "My Salary", path: "/employee/salary" },
-    { icon: <FaBox />, title: "Stock Requests", path: "/employee/stock-requests" },
-    { icon: <FaUtensils />, title: "Mess Schedule", path: "/mess" },
+    
   ];
 
   return (
