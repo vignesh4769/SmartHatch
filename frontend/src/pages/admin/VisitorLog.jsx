@@ -3,7 +3,7 @@ import { FiUserPlus, FiClock, FiLogOut } from 'react-icons/fi';
 import visitorApi from '../../api/visitorApi';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContext';
 
 function Visitors() {
   const [visitors, setVisitors] = useState([]);
@@ -17,7 +17,6 @@ function Visitors() {
     date: new Date().toISOString().split('T')[0]
   });
 
-  // Check authentication and fetch visitors on component mount
   useEffect(() => {
     if (!user) {
       toast.error('Please log in to access this page');

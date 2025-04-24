@@ -8,11 +8,9 @@ export const registerVisitor = async (req, res) => {
       return res.status(400).json({ message: 'Name and reason are required' });
     }
 
-    // Preserve the current time when creating a new visitor
     const now = new Date();
     const checkInTime = date ? new Date(date) : now;
     if (date) {
-      // If a date was provided, combine it with current time
       checkInTime.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
     }
 

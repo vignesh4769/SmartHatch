@@ -5,7 +5,7 @@ function LeaveManagement() {
   const [leaveRequests, setLeaveRequests] = useState([
     {
       id: 1,
-      employeeName: 'John Doe',
+      employeeName: 'John Do',
       department: 'Operations',
       leaveType: 'Sick Leave',
       startDate: '2024-02-20',

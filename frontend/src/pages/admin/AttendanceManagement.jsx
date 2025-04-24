@@ -11,8 +11,7 @@ import { useAuth } from "../../context/AuthContext";
 import {
   getAttendanceByDate,
   submitAttendanceRecords,
-  getEmployeesByHatchery,
-} from "../../api/attendanceAPI";
+} from "../../api/attendanceApi";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import api from "../../api/config";

@@ -107,7 +107,7 @@ export const getMonthlyReport = async (month, year) => {
 // Get attendance records by date
 export const getAttendanceByDate = async (date) => {
   try {
-    const response = await api.get("/api/attendance/getByDate", {
+    const response = await api.get("/api/admin/attendance", {
       params: { date },
     });
     return response.data;
@@ -122,7 +122,7 @@ export const getAttendanceByDate = async (date) => {
 // Submit attendance records
 export const submitAttendanceRecords = async (records) => {
   try {
-    const response = await api.post("/api/attendance/submit", { records });
+    const response = await api.post("/api/admin/attendance/submit", { records });
     return response.data;
   } catch (error) {
     throw error.response?.data?.error || "Failed to submit attendance records";
