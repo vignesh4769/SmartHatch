@@ -33,7 +33,7 @@ const AttendanceSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Add index for efficient querying
+// Ensure unique attendance per employee per date
 AttendanceSchema.index({ employeeId: 1, date: 1 }, { unique: true });
 
 const Attendance = mongoose.model('Attendance', AttendanceSchema);
