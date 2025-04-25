@@ -36,8 +36,10 @@ const attendanceApi = {
         throw new Error('Invalid check-in time provided');
       }
 
+      // Ensure status is always set, fallback to 'not-marked'
       const response = await api.post('/api/admin/attendance', {
         ...data,
+        status: data.status || 'not-marked',
         date: formattedDate.toISOString(),
         checkIn: formattedCheckIn ? formattedCheckIn.toISOString() : null
       });
@@ -57,24 +59,13 @@ const attendanceApi = {
         throw new Error('Invalid records format');
       }
 
-      // Ensure all dates are properly formatted
-      const formattedRecords = data.records.map(record => {
-        const formattedDate = new Date(record.date);
-        if (isNaN(formattedDate.getTime())) {
-          throw new Error('Invalid date in records');
-        }
-
-        const formattedCheckIn = record.checkIn ? new Date(record.checkIn) : null;
-        if (formattedCheckIn && isNaN(formattedCheckIn.getTime())) {
-          throw new Error('Invalid check-in time in records');
-        }
-
-        return {
-          ...record,
-          date: formattedDate.toISOString(),
-          checkIn: formattedCheckIn ? formattedCheckIn.toISOString() : null
-        };
-      });
+      // Ensure all statuses are set, fallback to 'not-marked'
+      const formattedRecords = data.records.map(record => ({
+        ...record,
+        status: record.status || 'not-marked',
+        date: new Date(record.date).toISOString(),
+        checkIn: record.checkIn ? new Date(record.checkIn).toISOString() : null
+      }));
 
       const response = await api.post('/api/admin/attendance/bulk', {
         records: formattedRecords
@@ -118,6 +109,18 @@ const attendanceApi = {
         error: "Failed to fetch monthly report" 
       };
     }
+  }
+};
+
+
+export const getEmployeeAttendance = async (month) => {
+  try {
+    const response = await api.get('/api/employee/attendance', {
+      params: { month }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
   }
 };
 

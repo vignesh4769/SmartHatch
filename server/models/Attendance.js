@@ -23,11 +23,6 @@ const AttendanceSchema = new mongoose.Schema({
       },
       message: 'Check-in time should only be set for present, late, or half-day status'
     }
-  },
-  recordedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-    required: true
   }
 }, {
   timestamps: true

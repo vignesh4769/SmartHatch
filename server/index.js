@@ -9,7 +9,7 @@ import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/admin.js';
 import VistorRouter from './routes/VisitorRoutes.js';
 import financialRoutes from './routes/financialRoutes.js';
-import employeeRoutes from './routes/employeeRoutes.js';
+import employeeRoutes from './routes/employee.js';
 
 dotenv.config();
 connectDB();

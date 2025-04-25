@@ -48,7 +48,7 @@ function AttendanceManagement() {
             name: `${employee.firstName} ${employee.lastName}`,
             email: employee.email,
             department: employee.department,
-            status: "not-marked",
+            status: "not-marked", // Default to not-marked for all
             checkIn: null,
             _id: null
           }));
@@ -70,9 +70,9 @@ function AttendanceManagement() {
             // Update initial records with existing attendance data
             const mergedRecords = initialRecords.map(record => {
               const existingRecord = existingRecords.find(
-                existing => existing.employeeId === record.employeeId
+                existing => existing.employeeId.toString() === record.employeeId.toString()
               );
-              return existingRecord || record;
+              return existingRecord || { ...record, status: "not-marked", checkIn: null };
             });
 
             setAttendanceRecords(mergedRecords);
@@ -122,17 +122,17 @@ function AttendanceManagement() {
     const shouldSetCheckIn = ["present", "late", "half-day"].includes(status);
 
     setAttendanceRecords((prev) => {
-      const existingRecord = prev.find((record) => record.employeeId === employeeId);
+      const existingRecord = prev.find((record) => record.employeeId.toString() === employeeId.toString());
       if (existingRecord) {
         // Update existing record
         return prev.map((record) =>
-          record.employeeId === employeeId
+          record.employeeId.toString() === employeeId.toString()
             ? { ...record, status, checkIn: shouldSetCheckIn ? checkInTime : null }
             : record
         );
       } else {
         // Create new record
-        const employee = employees.find((emp) => emp._id === employeeId);
+        const employee = employees.find((emp) => emp._id.toString() === employeeId.toString());
         return [
           ...prev,
           {
@@ -151,15 +151,15 @@ function AttendanceManagement() {
 
   const handleCheckInChange = (employeeId, checkIn) => {
     setAttendanceRecords((prev) => {
-      const existingRecord = prev.find((record) => record.employeeId === employeeId);
+      const existingRecord = prev.find((record) => record.employeeId.toString() === employeeId.toString());
       if (existingRecord) {
         // Update existing record
         return prev.map((record) =>
-          record.employeeId === employeeId ? { ...record, checkIn } : record
+          record.employeeId.toString() === employeeId.toString() ? { ...record, checkIn } : record
         );
       } else {
         // Create new record
-        const employee = employees.find((emp) => emp._id === employeeId);
+        const employee = employees.find((emp) => emp._id.toString() === employeeId.toString());
         return [
           ...prev,
           {
@@ -186,7 +186,7 @@ function AttendanceManagement() {
       setSaving(true);
 
       // Get all records that have been marked
-      const markedRecords = attendanceRecords.filter(record => 
+      const markedRecords = attendanceRecords.filter(record =>
         record.status && record.status !== "not-marked"
       );
 
@@ -203,29 +203,47 @@ function AttendanceManagement() {
         checkIn: record.checkIn
       }));
 
+      // --- FIX: always use the bulk attendance API ---
       const response = await attendanceApi.submitAttendanceRecords({ records });
-
       if (response.success) {
-        toast.success("Attendance records saved successfully");
-        // Refresh the data
+        toast.success(response.message || "Attendance saved successfully");
+        // Optionally refresh attendance records after submission
         const attendanceResponse = await attendanceApi.getAttendanceByDate(filterDate);
         if (attendanceResponse.success) {
-          const newRecords = attendanceResponse.data.map((item) => ({
-            employeeId: item.employeeId._id,
-            name: `${item.employeeId.firstName} ${item.employeeId.lastName}`,
-            email: item.employeeId.email,
-            department: item.employeeId.department,
-            status: item.status,
-            checkIn: item.checkIn,
-            _id: item._id,
-          }));
+          // Merge and update state as before
+          const newRecords = employees.map(employee => {
+            const found = attendanceResponse.data.find(
+              item => item.employeeId._id.toString() === employee._id.toString()
+            );
+            return found
+              ? {
+                  employeeId: found.employeeId._id,
+                  name: `${found.employeeId.firstName} ${found.employeeId.lastName}`,
+                  email: found.employeeId.email,
+                  department: found.employeeId.department,
+                  status: found.status,
+                  checkIn: found.checkIn,
+                  _id: found._id,
+                }
+              : {
+                  employeeId: employee._id,
+                  name: `${employee.firstName} ${employee.lastName}`,
+                  email: employee.email,
+                  department: employee.department,
+                  status: "not-marked",
+                  checkIn: null,
+                  _id: null,
+                };
+          });
           setAttendanceRecords(newRecords);
           updateStats(newRecords);
         }
+      } else {
+        toast.error(response.error || "Failed to save attendance records");
       }
     } catch (error) {
       console.error("Error saving attendance:", error);
-      const errorMessage = error.response?.data?.error || "Failed to save attendance records";
+      const errorMessage = error.response?.data?.error || error.message || "Failed to save attendance records";
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -243,7 +261,7 @@ function AttendanceManagement() {
       return false;
     if (selectedFilter === "all") return true;
     const record = attendanceRecords.find(
-      (record) => record.employeeId === employee._id
+      (record) => record.employeeId.toString() === employee._id.toString()
     );
     return record?.status === selectedFilter;
   });
@@ -378,7 +396,7 @@ function AttendanceManagement() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredEmployees.map((employee) => {
                   const record = attendanceRecords.find(
-                    (record) => record.employeeId === employee._id
+                    (record) => record.employeeId.toString() === employee._id.toString()
                   );
                   return (
                     <tr key={employee._id}>

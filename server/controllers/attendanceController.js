@@ -10,8 +10,7 @@ export const getAttendanceByDate = async (req, res) => {
     queryDate.setHours(0, 0, 0, 0);
 
     const attendance = await Attendance.find({ date: queryDate })
-      .populate('employeeId', 'firstName lastName email department')
-      .populate('recordedBy', 'firstName lastName');
+      .populate('employeeId', 'firstName lastName email department');
 
     res.json({ success: true, data: attendance });
   } catch (error) {
@@ -27,7 +26,6 @@ export const getAttendanceByDate = async (req, res) => {
 export const submitAttendanceRecords = async (req, res) => {
   try {
     const { records } = req.body;
-    const recordedBy = req.user._id;
 
     if (!Array.isArray(records) || records.length === 0) {
       return res.status(400).json({ success: false, error: 'No attendance records provided' });
@@ -40,12 +38,10 @@ export const submitAttendanceRecords = async (req, res) => {
     const activeEmployeeIds = employees.map(emp => emp._id.toString());
 
     let upsertedCount = 0;
-    let modifiedCount = 0;
     let failedRecords = [];
     for (const record of records) {
       try {
-        if (!record.employeeId || !record.status || !record.date) {
-          console.log('Skipping record (missing fields):', record);
+        if (!record.employeeId || !record.date) {
           failedRecords.push({ record, error: 'Missing fields' });
           continue;
         }
@@ -53,38 +49,35 @@ export const submitAttendanceRecords = async (req, res) => {
         const normalizedDate = new Date(record.date);
         normalizedDate.setHours(0, 0, 0, 0);
         if (!activeEmployeeIds.includes(employeeId)) {
-          console.log('Skipping record (inactive/invalid employee):', record);
           failedRecords.push({ record, error: 'Inactive or invalid employee ID' });
           continue;
         }
         if (record.checkIn && ['present', 'late', 'half-day'].includes(record.status)) {
           const checkInDate = new Date(record.checkIn);
           if (isNaN(checkInDate.getTime())) {
-            console.log('Skipping record (invalid check-in):', record);
             failedRecords.push({ record, error: 'Invalid check-in time' });
             continue;
           }
         }
-        const filter = { employeeId: new mongoose.Types.ObjectId(employeeId), date: normalizedDate };
+        const status = record.status || 'not-marked';
         const update = {
-          $set: {
-            status: record.status,
-            checkIn: record.checkIn ? new Date(record.checkIn) : null,
-            recordedBy: new mongoose.Types.ObjectId(recordedBy),
-            date: normalizedDate
-          }
+          status,
+          checkIn: record.checkIn ? new Date(record.checkIn) : null,
+          date: normalizedDate
         };
-        const result = await Attendance.updateOne(filter, update, { upsert: true });
-        console.log('Upsert result for', filter, ':', result);
-        if (result.upsertedCount > 0) upsertedCount++;
-        if (result.modifiedCount > 0) modifiedCount++;
+        const result = await Attendance.findOneAndUpdate(
+          { employeeId: new mongoose.Types.ObjectId(employeeId), date: normalizedDate },
+          update,
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        upsertedCount++;
       } catch (err) {
         console.error('Error upserting attendance record:', err, 'Record:', record);
         failedRecords.push({ record, error: err.message });
       }
     }
 
-    console.log('Bulk attendance upsert summary:', { upsertedCount, modifiedCount, failedRecords });
+    console.log('Bulk attendance upsert summary:', { upsertedCount, failedRecords });
 
     if (failedRecords.length === records.length) {
       // All failed
@@ -97,7 +90,7 @@ export const submitAttendanceRecords = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Attendance records processed. Inserted: ${upsertedCount}, Updated: ${modifiedCount}, Failed: ${failedRecords.length}`,
+      message: `Attendance records processed. Inserted/Updated: ${upsertedCount}, Failed: ${failedRecords.length}`,
       failedRecords
     });
   } catch (error) {
@@ -114,10 +107,9 @@ export const submitAttendanceRecords = async (req, res) => {
 export const recordAttendance = async (req, res) => {
   try {
     const { employeeId, date, status, checkIn } = req.body;
-    const recordedBy = req.user._id;
 
-    if (!employeeId || !date || !status) {
-      return res.status(400).json({ success: false, error: 'Employee ID, date and status are required' });
+    if (!employeeId || !date) {
+      return res.status(400).json({ success: false, error: 'Employee ID and date are required' });
     }
 
     const employee = await Employee.findById(employeeId);
@@ -139,9 +131,8 @@ export const recordAttendance = async (req, res) => {
     const newAttendance = new Attendance({
       employeeId,
       date: attendanceDate,
-      status,
-      checkIn: checkIn ? new Date(checkIn) : null,
-      recordedBy
+      status: status || 'not-marked',
+      checkIn: checkIn ? new Date(checkIn) : null
     });
 
     await newAttendance.save();
@@ -211,5 +202,27 @@ export const getMonthlyReport = async (req, res) => {
   } catch (error) {
     console.error('Error generating monthly report:', error);
     res.status(500).json({ success: false, error: 'Failed to generate report' });
+  }
+};
+
+// Employee can only view their attendance for a month
+export const getEmployeeAttendanceByMonth = async (req, res) => {
+  try {
+    const { month } = req.query;
+    if (!month || !/^[0-9]{4}-[0-9]{2}$/.test(month)) {
+      return res.status(400).json({ success: false, error: 'Month parameter required (YYYY-MM)' });
+    }
+    const [year, mon] = month.split('-');
+    const start = new Date(`${year}-${mon}-01T00:00:00.000Z`);
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + 1);
+    const attendance = await Attendance.find({
+      employeeId: req.user.id,
+      date: { $gte: start, $lt: end }
+    });
+    res.json({ success: true, data: attendance });
+  } catch (error) {
+    console.error('Error fetching employee attendance:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch employee attendance' });
   }
 };

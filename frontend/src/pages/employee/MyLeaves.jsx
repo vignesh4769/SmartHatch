@@ -4,6 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import LeaveApplication from "./LeaveApplication";
+import LeaveApi from "../../api/leaveApi";
 
 const MyLeaves = () => {
   const { user } = useAuth();
@@ -16,8 +17,8 @@ const MyLeaves = () => {
   useEffect(() => {
     const fetchLeaves = async () => {
       try {
-        const response = await axios.get("/api/employee/leaves");
-        setLeaves(response.data.leaves);
+        const response = await LeaveApi.getMyLeaves();
+        setLeaves(response.data.data);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to fetch leaves");
       } finally {
@@ -38,7 +39,7 @@ const MyLeaves = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch ((status || '').toLowerCase()) {
       case "approved":
         return "bg-green-100 text-green-800";
       case "rejected":
@@ -50,19 +51,11 @@ const MyLeaves = () => {
     }
   };
 
-  const calculateLeaveDays = (startDate, endDate) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const timeDiff = end - start;
-    const dayDiff = timeDiff / (1000 * 60 * 60 * 24);
-    return Math.ceil(dayDiff) + 1; // +1 to include both start and end dates
-  };
-
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-4xl mx-auto ml-56">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">My Leave Applications</h1>
         <button
@@ -84,19 +77,19 @@ const MyLeaves = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Period
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Days
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Type
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Start Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                End Date
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reason
+                Admin Notes
               </th>
             </tr>
           </thead>
@@ -110,27 +103,18 @@ const MyLeaves = () => {
             ) : (
               leaves.map((leave) => (
                 <tr key={leave._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">{leave.type}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {format(new Date(leave.startDate), "MMM dd, yyyy")} -{" "}
-                    {format(new Date(leave.endDate), "MMM dd, yyyy")}
+                    {leave.startDate ? format(new Date(leave.startDate), "yyyy-MM-dd") : ""}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {calculateLeaveDays(leave.startDate, leave.endDate)} days
+                    {leave.endDate ? format(new Date(leave.endDate), "yyyy-MM-dd") : ""}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap capitalize">
-                    {leave.type}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        leave.status
-                      )}`}
-                    >
-                      {leave.status}
-                    </span>
+                  <td className={`px-6 py-4 whitespace-nowrap ${getStatusColor(leave.status)}`}>
+                    {(leave.status || '').charAt(0).toUpperCase() + (leave.status || '').slice(1)}
                   </td>
                   <td className="px-6 py-4 text-gray-700 max-w-xs truncate">
-                    {leave.reason}
+                    {leave.adminNotes || "-"}
                   </td>
                 </tr>
               ))

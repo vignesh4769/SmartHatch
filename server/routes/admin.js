@@ -14,8 +14,10 @@ import {
   submitAttendanceRecords
 } from '../controllers/attendanceController.js';
 import {
-  getPendingLeaves
-} from '../controllers/adminController.js';
+  getPendingLeaves,
+  getAllLeaves,
+  updateLeaveStatus
+} from '../controllers/leaveController.js';
 import {
   addInventoryItem,
   getInventoryItems,
@@ -50,7 +52,10 @@ router.route('/employees/:id')
   .put(updateEmployee)
   .delete(deleteEmployee);
 
-router.get('/pending-leaves', getPendingLeaves);
+// Leave management
+router.get('/leaves/pending', getPendingLeaves);
+router.get('/leaves', getAllLeaves);
+router.put('/leaves/:id', updateLeaveStatus);
 
 // Attendance routes
 router.get('/attendance', getAttendanceByDate);

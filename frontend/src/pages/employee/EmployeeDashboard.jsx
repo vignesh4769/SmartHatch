@@ -9,8 +9,8 @@ function EmployeeDashboard() {
 
   const menuItems = [
     { icon: <FaCalendarAlt />, title: "My Attendance", path: "/employee/attendance" },
-    { icon: <FaFileAlt />, title: "My Leaves", path: "/employee/leave-application" },
-    { icon: <FaFileAlt />, title: "Apply Leave", path: "/apply-leave" },
+    { icon: <FaFileAlt />, title: "My Leaves", path: "/employee/leaves" },
+    { icon: <FaFileAlt />, title: "Apply Leave", path: "/employee/leave-application" },
     
   ];
 
