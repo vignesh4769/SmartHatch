@@ -113,25 +113,23 @@ function AttendanceManagement() {
   };
 
   const handleStatusChange = (employeeId, status) => {
-    // Get the exact current time
     const now = new Date();
     const checkInTime = new Date(filterDate);
     checkInTime.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), 0);
 
-    // Only set check-in time for present, late, and half-day status
     const shouldSetCheckIn = ["present", "late", "half-day"].includes(status);
 
     setAttendanceRecords((prev) => {
       const existingRecord = prev.find((record) => record.employeeId.toString() === employeeId.toString());
       if (existingRecord) {
-        // Update existing record
+       
         return prev.map((record) =>
           record.employeeId.toString() === employeeId.toString()
             ? { ...record, status, checkIn: shouldSetCheckIn ? checkInTime : null }
             : record
         );
       } else {
-        // Create new record
+        
         const employee = employees.find((emp) => emp._id.toString() === employeeId.toString());
         return [
           ...prev,
@@ -153,12 +151,12 @@ function AttendanceManagement() {
     setAttendanceRecords((prev) => {
       const existingRecord = prev.find((record) => record.employeeId.toString() === employeeId.toString());
       if (existingRecord) {
-        // Update existing record
+      
         return prev.map((record) =>
           record.employeeId.toString() === employeeId.toString() ? { ...record, checkIn } : record
         );
       } else {
-        // Create new record
+       
         const employee = employees.find((emp) => emp._id.toString() === employeeId.toString());
         return [
           ...prev,
@@ -167,7 +165,7 @@ function AttendanceManagement() {
             name: `${employee.firstName} ${employee.lastName}`,
             email: employee.email,
             department: employee.department,
-            status: "present", // Default to present when setting check-in time
+            status: "present",
             checkIn,
             _id: null,
           },
