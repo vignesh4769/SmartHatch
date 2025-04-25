@@ -34,6 +34,7 @@ import {
   deleteMessSchedule,
   getMess
 } from '../controllers/messController.js';
+import { getAdminNotifications } from '../controllers/notificationController.js';
 
 const router = express.Router();
 
@@ -87,5 +88,8 @@ router.route('/mess/employees').get(getMess);
 router.route('/mess/:id')
   .put(updateMessSchedule)
   .delete(deleteMessSchedule);
+
+// Notifications
+router.get('/notifications', getAdminNotifications);
 
 export default router;

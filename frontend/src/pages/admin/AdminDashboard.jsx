@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -8,6 +7,7 @@ import api from "../../api/config";
 import DashboardStats from "../../components/shared/DashboardStats";
 import RecentActivity from "../../components/admin/RecentActivity";
 import Button from "../../components/common/Button";
+import AdminNotifications from "../../components/admin/AdminNotifications";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -101,6 +101,10 @@ const AdminDashboard = () => {
 
         <div className={`${darkMode ? "bg-gray-800" : "bg-white"} rounded-lg shadow p-6`}>
           <RecentActivity activities={stats.recentActivities} />
+        </div>
+
+        <div className={`${darkMode ? "bg-gray-800" : "bg-white"} rounded-lg shadow p-6 col-span-1 md:col-span-2 mt-6`}>
+          <AdminNotifications type="inventory" />
         </div>
       </div>
     </div>
